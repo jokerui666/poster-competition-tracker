@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Jheng Chang Chen — Poster Competition Tracker</title>
+<style>
+:root{--text:#161616;--muted:#777;--line:#ddd;--soft:#f6f6f6;--red:#c62828;--green:#167c3a;--blue:#2457a6}
+*{box-sizing:border-box} body{margin:0;font-family:Arial,"Noto Sans TC",sans-serif;color:var(--text);background:white}
+main{max-width:1050px;margin:0 auto;padding:32px 20px 60px}
+header{display:flex;justify-content:space-between;gap:20px;align-items:end;flex-wrap:wrap;border-bottom:3px solid #111;padding-bottom:14px;margin-bottom:14px}
+h1{margin:0;font-size:28px;letter-spacing:.02em} .sub{color:var(--muted);font-size:13px;margin-top:5px}
+.stats{font-size:13px;color:var(--muted)} .stats b{color:#111}
+.notice{font-size:12px;color:var(--muted);padding:9px 0 14px}
+.row{display:grid;grid-template-columns:48px minmax(0,1fr) 115px 150px 145px;gap:12px;align-items:center;border-bottom:1px solid var(--line);padding:14px 5px}
+.head{font-size:11px;font-weight:700;color:var(--muted);background:var(--soft);padding:9px 5px}
+.name{font-weight:700;font-size:14px;line-height:1.35} .date{font-size:13px;white-space:nowrap}
+.check{width:22px;height:22px;accent-color:#111;cursor:pointer}
+.result{font-size:12px;font-weight:650} .wait{color:var(--muted)} .published{color:var(--red)} .winner{color:var(--green)}
+.badge{display:inline-block;padding:5px 8px;border-radius:999px;background:var(--soft);font-size:11px}
+.badge.track{background:#eef3fb;color:var(--blue)} .badge.red{background:#fff0f0;color:var(--red)} .badge.green{background:#edf8f1;color:var(--green)}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0} button{border:1px solid #bbb;background:white;padding:8px 12px;border-radius:7px;cursor:pointer} button:hover{background:#f5f5f5}
+@media(max-width:760px){.row{grid-template-columns:42px minmax(0,1fr) 95px 115px} .statuscol,.head .statuscol{display:none}}
+@media(max-width:520px){main{padding:20px 12px} h1{font-size:22px} .row{grid-template-columns:38px minmax(0,1fr) 88px 105px} .head{font-size:10px} .date,.result{font-size:11px}}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div><h1>JHENG CHANG CHEN</h1><div class="sub">2026 POSTER COMPETITION TRACKER</div></div>
+  <div class="stats">已參加 <b id="count">0</b> ／ 共 <b id="total">13</b></div>
+</header>
+<div class="notice">資料來源：PosterTerritory 2026 Poster Competitions。☑「我有參加」後，該項目即視為追蹤中。</div>
+<div class="controls">
+  <button id="all">全部</button><button id="mine">我有參加</button><button id="published">已公布</button>
+  <button id="add">＋手動新增競賽</button><button id="reset">重置勾選</button>
+</div>
+<div class="row head"><div>參加</div><div>COMPETITION</div><div>DEADLINE</div><div>RESULT</div><div class="statuscol">STATUS</div></div>
+<div id="list"></div>
+</main>
+<script>
+const initial = [{"id": 1, "name": "Poster for Tomorrow: WHAT IS DIGNITY?", "deadline": "2026-07-20", "result": "", "participating": false, "outcome": ""}, {"id": 2, "name": "Still Human — Posterheroes 15th edition", "deadline": "2026-08-16", "result": "", "participating": false, "outcome": ""}, {"id": 3, "name": "Poster for___. International Poster Competition — 5th Edition", "deadline": "2026-07-31", "result": "", "participating": false, "outcome": ""}, {"id": 4, "name": "BULLSEYE — International Jurized Traditional Turkish Archery Art Exhibition", "deadline": "2026-08-10", "result": "", "participating": false, "outcome": ""}, {"id": 5, "name": "Antwerp Poster Fest", "deadline": "2026-08-18", "result": "", "participating": false, "outcome": ""}, {"id": 6, "name": "International Poster Festival PLAKATFEST Mikołów 2026", "deadline": "2026-08-20", "result": "", "participating": false, "outcome": ""}, {"id": 7, "name": "The Hiiibrand International Brand & Communication Design Awards", "deadline": "2026-08-31", "result": "", "participating": false, "outcome": ""}, {"id": 8, "name": "20th International Biennale of Theatre Poster", "deadline": "2026-09-08", "result": "2026-10-16", "participating": false, "outcome": ""}, {"id": 9, "name": "Luga Poster Biennale — II edition", "deadline": "2026-09-15", "result": "2026-10-31", "participating": false, "outcome": ""}, {"id": 10, "name": "Posko Visual 2026 Open Call", "deadline": "2026-09-15", "result": "", "participating": false, "outcome": ""}, {"id": 11, "name": "Communication Arts 2027 Typography Competition", "deadline": "2026-09-18", "result": "", "participating": false, "outcome": ""}, {"id": 12, "name": "7th Bolu International Poster Design Competition", "deadline": "2026-11-01", "result": "", "participating": false, "outcome": ""}, {"id": 13, "name": "International Compost Awareness Week 2027 Poster Contest", "deadline": "2026-11-01", "result": "", "participating": false, "outcome": ""}];
+let data = JSON.parse(localStorage.getItem("jhengPosterTracker") || "null") || initial;
+let filter = "all";
+const fmt = d => d ? d.replaceAll("-","/") : "尚未公布";
+function render(){
+ const list=document.getElementById("list");
+ let rows=data.filter(x=>filter==="all" || (filter==="mine"&&x.participating) || (filter==="published"&&x.result));
+ list.innerHTML=rows.map(x=>{
+   const result = x.outcome ? x.outcome : (x.result ? "🔴 成績已公布" : "— 尚未公布");
+   const rc = x.outcome ? "winner" : (x.result ? "published" : "wait");
+   const badge = x.outcome ? '<span class="badge green">🏆 '+escapeHtml(x.outcome)+'</span>' :
+                 x.result ? '<span class="badge red">🔴 已公布</span>' :
+                 x.participating ? '<span class="badge track">🟡 追蹤中</span>' :
+                 '<span class="badge">未參加</span>';
+   return `<div class="row" data-id="${x.id}">
+     <div><input class="check" type="checkbox" ${x.participating?'checked':''} aria-label="我有參加"></div>
+     <div class="name">${escapeHtml(x.name)}</div>
+     <div class="date">${fmt(x.deadline)}</div>
+     <div class="result ${rc}">${result}</div>
+     <div class="statuscol">${badge}</div>
+   </div>`;
+ }).join("");
+ document.querySelectorAll(".check").forEach(c=>c.addEventListener("change",e=>{
+   const id=Number(e.target.closest(".row").dataset.id); const x=data.find(a=>a.id===id);
+   x.participating=e.target.checked; save(); render();
+ }));
+ document.getElementById("count").textContent=data.filter(x=>x.participating).length;
+}
+function save(){localStorage.setItem("jhengPosterTracker",JSON.stringify(data));}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+document.getElementById("all").onclick=()=>{filter="all";render()};
+document.getElementById("mine").onclick=()=>{filter="mine";render()};
+document.getElementById("published").onclick=()=>{filter="published";render()};
+document.getElementById("reset").onclick=()=>{if(confirm("重置所有參加勾選？")){data.forEach(x=>x.participating=false);save();render()}};
+document.getElementById("add").onclick=()=>{
+ const name=prompt("競賽名稱"); if(!name)return;
+ const deadline=prompt("截止日期（YYYY-MM-DD，可留空）")||"";
+ const result=prompt("成績公布日期（YYYY-MM-DD，可留空）")||"";
+ data.push({id:Date.now(),name,deadline,result,participating:false,outcome:""});
+ save();render();
+};
+render();
+</script>
+</body>
+</html>
