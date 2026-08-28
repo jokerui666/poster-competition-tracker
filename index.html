@@ -1,12 +1,23 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
 
-<title>JHENG CHANG CHEN — Poster Competition Tracker</title>
+<meta charset="utf-8">
+
+<meta
+  name="viewport"
+  content="width=device-width,initial-scale=1">
+
+<title>
+JHENG CHANG CHEN — Poster Competition Tracker
+</title>
+
 
 <style>
+
+/* =====================================================
+   BASIC
+===================================================== */
 
 *{
   box-sizing:border-box;
@@ -16,7 +27,11 @@ body{
   margin:0;
   background:#fff;
   color:#111;
-  font-family:Arial,"Noto Sans TC","Microsoft JhengHei",sans-serif;
+  font-family:
+    Arial,
+    "Noto Sans TC",
+    "Microsoft JhengHei",
+    sans-serif;
 }
 
 .wrap{
@@ -26,9 +41,9 @@ body{
 }
 
 
-/* =========================
+/* =====================================================
    HEADER
-========================= */
+===================================================== */
 
 header{
   border-bottom:3px solid #111;
@@ -47,13 +62,12 @@ h1{
   color:#666;
   margin-top:7px;
   font-size:15px;
-  letter-spacing:.2px;
 }
 
 
-/* =========================
+/* =====================================================
    STATISTICS
-========================= */
+===================================================== */
 
 .stats{
   display:flex;
@@ -73,9 +87,9 @@ h1{
 }
 
 
-/* =========================
+/* =====================================================
    CONTROLS
-========================= */
+===================================================== */
 
 .controls{
   display:flex;
@@ -120,17 +134,20 @@ button.active{
 }
 
 
-/* =========================
-   DATA STATUS
-========================= */
+/* =====================================================
+   STATUS
+===================================================== */
 
 .status{
   display:flex;
   align-items:center;
   flex-wrap:wrap;
-  gap:12px;
+  gap:10px;
+
   min-height:24px;
+
   margin:9px 0 13px;
+
   font-size:12px;
   color:#666;
 }
@@ -152,9 +169,9 @@ button.active{
 }
 
 
-/* =========================
+/* =====================================================
    TABLE
-========================= */
+===================================================== */
 
 .table{
   border-top:2px solid #111;
@@ -166,9 +183,8 @@ button.active{
   grid-template-columns:
     48px
     minmax(300px,1fr)
-    110px
-    135px
-    165px;
+    125px
+    170px;
 
   gap:14px;
 
@@ -181,19 +197,24 @@ button.active{
 
 .head{
   background:#f4f4f4;
+
   color:#666;
+
   font-size:11px;
+
   font-weight:700;
+
   padding:10px 6px;
 }
 
 
-/* =========================
-   COMPETITION TITLE
-========================= */
+/* =====================================================
+   TITLE
+===================================================== */
 
 .title{
   min-width:0;
+
   line-height:1.35;
 }
 
@@ -205,6 +226,7 @@ button.active{
   text-decoration:none;
 
   font-size:15px;
+
   font-weight:700;
 }
 
@@ -214,8 +236,10 @@ button.active{
 
 .title a::after{
   content:" ↗";
-  font-size:11px;
+
   color:#999;
+
+  font-size:11px;
 }
 
 .titleZh{
@@ -224,42 +248,33 @@ button.active{
   color:#777;
 
   font-size:12px;
+
+  font-weight:400;
+
   line-height:1.4;
 }
 
 
-/* =========================
-   DATE
-========================= */
+/* =====================================================
+   DEADLINE
+===================================================== */
 
-.deadline,
-.resultDate{
+.deadline{
   font-size:12px;
+
   white-space:nowrap;
 }
 
 
-/* =========================
-   CHECKBOX
-========================= */
-
-.check{
-  width:22px;
-  height:22px;
-
-  accent-color:#111;
-
-  cursor:pointer;
-}
-
-
-/* =========================
+/* =====================================================
    RESULT
-========================= */
+===================================================== */
 
 .resultBtn{
   width:100%;
+
   text-align:left;
+
   white-space:nowrap;
 }
 
@@ -284,9 +299,23 @@ button.active{
 }
 
 
-/* =========================
+/* =====================================================
+   CHECKBOX
+===================================================== */
+
+.check{
+  width:22px;
+  height:22px;
+
+  accent-color:#111;
+
+  cursor:pointer;
+}
+
+
+/* =====================================================
    EMPTY
-========================= */
+===================================================== */
 
 .empty{
   padding:35px 10px;
@@ -299,9 +328,9 @@ button.active{
 }
 
 
-/* =========================
+/* =====================================================
    NOTE
-========================= */
+===================================================== */
 
 .note{
   margin-top:13px;
@@ -314,20 +343,23 @@ button.active{
 }
 
 
-/* =========================
+/* =====================================================
    DIALOG
-========================= */
+===================================================== */
 
 dialog{
   border:0;
+
   border-radius:12px;
 
   padding:20px;
 
   max-width:420px;
+
   width:calc(100% - 30px);
 
-  box-shadow:0 10px 40px #0003;
+  box-shadow:
+    0 10px 40px #0003;
 }
 
 dialog::backdrop{
@@ -344,13 +376,14 @@ dialog button{
 
 .close{
   float:right;
+
   padding:4px 9px;
 }
 
 
-/* =========================
+/* =====================================================
    MOBILE
-========================= */
+===================================================== */
 
 @media(max-width:760px){
 
@@ -368,10 +401,6 @@ dialog button{
 
   .controls{
     align-items:stretch;
-  }
-
-  .controls button{
-    flex:0 0 auto;
   }
 
   .refresh{
@@ -396,7 +425,6 @@ dialog button{
       90px;
   }
 
-  .resultDate,
   .statuscol{
     display:none;
   }
@@ -412,21 +440,25 @@ dialog button{
 }
 
 </style>
+
 </head>
 
 
 <body>
 
+
 <main class="wrap">
 
 
-<!-- =========================
+<!-- =====================================================
      HEADER
-========================= -->
+===================================================== -->
 
 <header>
 
-  <h1>JHENG CHANG CHEN</h1>
+  <h1>
+    JHENG CHANG CHEN
+  </h1>
 
   <div class="sub">
     2026 POSTER COMPETITION TRACKER
@@ -435,78 +467,99 @@ dialog button{
 </header>
 
 
-<!-- =========================
+<!-- =====================================================
      STATISTICS
-========================= -->
+===================================================== -->
 
 <div class="stats">
 
   <span>
-    已參加 <b id="joinedCount">0</b>
+    已參加
+    <b id="joinedCount">0</b>
   </span>
 
   <span>
-    追蹤中 <b id="trackingCount">0</b>
+    追蹤中
+    <b id="trackingCount">0</b>
   </span>
 
   <span>
-    入選 <b id="selectedCount">0</b>
+    入選
+    <b id="selectedCount">0</b>
   </span>
 
   <span>
-    得獎 <b id="winnerCount">0</b>
+    得獎
+    <b id="winnerCount">0</b>
   </span>
 
 </div>
 
 
-<!-- =========================
+<!-- =====================================================
      CONTROLS
-========================= -->
+===================================================== -->
 
 <div class="controls">
+
 
   <button
     class="active"
     data-filter="all">
+
     全部
+
   </button>
+
 
   <button
     data-filter="joined">
+
     我有參加
+
   </button>
+
 
   <button
     data-filter="pending">
+
     待公布
+
   </button>
+
 
   <button
     data-filter="result">
+
     已有結果
+
   </button>
 
 
   <button
     id="refresh"
     class="refresh">
+
     ↻ 重新整理資料
+
   </button>
 
 
   <button
     id="backend"
     class="backend">
+
     ⚙ 後台更新資料
+
   </button>
+
 
 </div>
 
 
-<!-- =========================
+<!-- =====================================================
      STATUS
-========================= -->
+===================================================== -->
 
 <div
   id="status"
@@ -515,17 +568,22 @@ dialog button{
   <span
     id="statusMain"
     class="statusMain">
+
     ● 正在載入資料……
+
   </span>
+
 
   <span
     id="statusCount">
   </span>
 
+
   <span
     id="statusSep"
     class="statusSep">
   </span>
+
 
   <span
     id="statusTime">
@@ -534,9 +592,9 @@ dialog button{
 </div>
 
 
-<!-- =========================
+<!-- =====================================================
      TABLE
-========================= -->
+===================================================== -->
 
 <div class="table">
 
@@ -547,19 +605,18 @@ dialog button{
       參加
     </div>
 
+
     <div>
       COMPETITION
     </div>
+
 
     <div>
       DEADLINE
     </div>
 
-    <div class="resultDate">
-      RESULT DATE
-    </div>
 
-    <div class="statuscol">
+    <div>
       我的結果
     </div>
 
@@ -572,17 +629,36 @@ dialog button{
 </div>
 
 
-<!-- =========================
+<!-- =====================================================
      NOTE
-========================= -->
+===================================================== -->
 
 <div class="note">
 
+  比賽依 Deadline
+  <b>最新 → 最舊</b> 排序。
+
+  <br>
+
   英文比賽名稱可直接點擊前往該比賽官方網站。
+
+  <br>
+
   第二行為繁體中文名稱。
-  「重新整理資料」只重新讀取目前的 competitions.json；
-  「後台更新資料」會進入 GitHub Actions 執行 PosterTerritory 更新。
-  參加狀態與結果會保存在此瀏覽器。
+
+  <br>
+
+  「↻ 重新整理資料」只會重新讀取目前的
+  <b>competitions.json</b>。
+
+  <br>
+
+  「⚙ 後台更新資料」會開啟 GitHub Actions，
+  執行 PosterTerritory 資料更新。
+
+  <br>
+
+  參加狀態與結果會保存在目前瀏覽器。
 
 </div>
 
@@ -590,45 +666,74 @@ dialog button{
 </main>
 
 
-<!-- =========================
+<!-- =====================================================
      RESULT DIALOG
-========================= -->
+===================================================== -->
 
 <dialog id="dlg">
+
 
   <button
     class="close"
     id="close">
+
     ×
+
   </button>
+
 
   <h3>
     修改結果
   </h3>
 
-  <button data-result="pending">
+
+  <button
+    data-result="pending">
+
     🟡 待公布
+
   </button>
+
   <br>
 
-  <button data-result="selected">
+
+  <button
+    data-result="selected">
+
     🟢 入選
+
   </button>
+
   <br>
 
-  <button data-result="honorable">
+
+  <button
+    data-result="honorable">
+
     🔵 優選／佳作
+
   </button>
+
   <br>
 
-  <button data-result="winner">
+
+  <button
+    data-result="winner">
+
     🏆 得獎
+
   </button>
+
   <br>
 
-  <button data-result="not_selected">
+
+  <button
+    data-result="not_selected">
+
     🔴 未入選
+
   </button>
+
 
 </dialog>
 
@@ -640,7 +745,9 @@ dialog button{
    SETTINGS
 ===================================================== */
 
-const KEY = 'jheng-poster-v6';
+const KEY =
+  'jheng-poster-v7';
+
 
 const BACKEND_URL =
   'https://github.com/jokerui666/poster-competition-tracker/actions/workflows/update-posterterritory.yml';
@@ -658,26 +765,43 @@ let editing = null;
 ===================================================== */
 
 const list =
-  document.getElementById('list');
+  document.getElementById(
+    'list'
+  );
+
 
 const statusMain =
-  document.getElementById('statusMain');
+  document.getElementById(
+    'statusMain'
+  );
+
 
 const statusCount =
-  document.getElementById('statusCount');
+  document.getElementById(
+    'statusCount'
+  );
+
 
 const statusSep =
-  document.getElementById('statusSep');
+  document.getElementById(
+    'statusSep'
+  );
+
 
 const statusTime =
-  document.getElementById('statusTime');
+  document.getElementById(
+    'statusTime'
+  );
+
 
 const dlg =
-  document.getElementById('dlg');
+  document.getElementById(
+    'dlg'
+  );
 
 
 /* =====================================================
-   FORMAT DATE
+   DATE
 ===================================================== */
 
 function fmt(date){
@@ -693,7 +817,7 @@ function fmt(date){
 
 
 /* =====================================================
-   FORMAT TIME
+   TIME
 ===================================================== */
 
 function fmtTime(date){
@@ -714,7 +838,7 @@ function fmtTime(date){
 
 
 /* =====================================================
-   ESCAPE HTML
+   ESCAPE
 ===================================================== */
 
 function esc(value){
@@ -723,11 +847,17 @@ function esc(value){
     .replace(
       /[&<>"']/g,
       m => ({
+
         '&':'&amp;',
+
         '<':'&lt;',
+
         '>':'&gt;',
+
         '"':'&quot;',
+
         "'":'&#039;'
+
       }[m])
     );
 
@@ -738,15 +868,22 @@ function esc(value){
    CHINESE TITLE
 ===================================================== */
 
-function getChineseTitle(x){
+function getChineseTitle(item){
 
   return (
-    x.traditionalChineseTitle ||
-    x.titleZh ||
-    x.title_zh ||
-    x.chineseTitle ||
-    x.zhTitle ||
+
+    item.titleZh ||
+
+    item.traditionalChineseTitle ||
+
+    item.title_zh ||
+
+    item.chineseTitle ||
+
+    item.zhTitle ||
+
     ''
+
   );
 
 }
@@ -775,7 +912,11 @@ function label(result){
     not_selected:
       '🔴 未入選'
 
-  }[result] || '🟡 待公布';
+  }[result]
+
+  ||
+
+  '🟡 待公布';
 
 }
 
@@ -804,7 +945,7 @@ function cls(result){
 
 
 /* =====================================================
-   LOAD JSON
+   LOAD DATA
 ===================================================== */
 
 async function load(){
@@ -815,11 +956,17 @@ async function load(){
   statusMain.textContent =
     '● 正在讀取最新資料……';
 
-  statusCount.textContent = '';
 
-  statusSep.textContent = '';
+  statusCount.textContent =
+    '';
 
-  statusTime.textContent = '';
+
+  statusSep.textContent =
+    '';
+
+
+  statusTime.textContent =
+    '';
 
 
   try{
@@ -858,13 +1005,15 @@ async function load(){
 
 
     /*
-       讀取瀏覽器原本保存的
-       參加／結果資料
+      讀取瀏覽器中的
+      使用者資料
     */
 
     const old =
       JSON.parse(
-        localStorage.getItem(KEY) || '{}'
+        localStorage.getItem(
+          KEY
+        ) || '{}'
       );
 
 
@@ -873,6 +1022,7 @@ async function load(){
 
         const saved =
           old[item.title] || {};
+
 
         return {
 
@@ -884,16 +1034,37 @@ async function load(){
           result:
             saved.result ||
             item.result ||
-            'pending',
-
-          resultDate:
-            saved.resultDate ||
-            item.resultDate ||
-            ''
+            'pending'
 
         };
 
       });
+
+
+    /*
+      最新 Deadline
+      → 最舊 Deadline
+    */
+
+    data.sort(
+      (a,b) => {
+
+        const dateA =
+          a.deadline
+          ? new Date(a.deadline)
+          : new Date(0);
+
+
+        const dateB =
+          b.deadline
+          ? new Date(b.deadline)
+          : new Date(0);
+
+
+        return dateB - dateA;
+
+      }
+    );
 
 
     render();
@@ -905,6 +1076,7 @@ async function load(){
 
     statusMain.className =
       'statusMain';
+
 
     statusMain.textContent =
       '● 已載入最新資料';
@@ -923,7 +1095,6 @@ async function load(){
       '最後讀取：' +
       fmtTime(now);
 
-
   }
 
 
@@ -935,17 +1106,21 @@ async function load(){
     statusMain.className =
       'statusMain error';
 
+
     statusMain.textContent =
       '● 無法讀取最新資料';
 
 
     statusCount.textContent =
-      '請確認 competitions.json 是否正常';
+      '請確認 competitions.json';
 
 
-    statusSep.textContent = '';
+    statusSep.textContent =
+      '';
 
-    statusTime.textContent = '';
+
+    statusTime.textContent =
+      '';
 
   }
 
@@ -953,7 +1128,7 @@ async function load(){
 
 
 /* =====================================================
-   SAVE USER DATA
+   SAVE
 ===================================================== */
 
 function persist(){
@@ -969,10 +1144,7 @@ function persist(){
         item.participating,
 
       result:
-        item.result,
-
-      resultDate:
-        item.resultDate
+        item.result
 
     };
 
@@ -996,13 +1168,13 @@ function render(){
   const rows =
     data.filter(item => {
 
-      if(filter === 'all'){
+      if(filter === 'all')
         return true;
-      }
 
-      if(filter === 'joined'){
+
+      if(filter === 'joined')
         return item.participating;
-      }
+
 
       if(filter === 'pending'){
 
@@ -1013,6 +1185,7 @@ function render(){
 
       }
 
+
       if(filter === 'result'){
 
         return (
@@ -1022,6 +1195,7 @@ function render(){
 
       }
 
+
       return true;
 
     });
@@ -1030,24 +1204,71 @@ function render(){
   if(rows.length === 0){
 
     list.innerHTML = `
+
       <div class="empty">
+
         目前沒有符合條件的比賽。
+
       </div>
+
     `;
 
   }
 
+
   else{
 
     list.innerHTML =
+
       rows.map(item => {
+
+
+        /*
+          官方網站
+
+          優先使用 officialUrl
+
+          如果後端舊資料還沒有
+          officialUrl，
+          再使用 url。
+        */
+
+        const website =
+          item.officialUrl ||
+          item.url ||
+          '';
+
 
         const chinese =
           getChineseTitle(item);
 
 
-        const website =
-          item.url || '#';
+        const titleHTML =
+          website
+
+          ?
+
+          `
+          <a
+            href="${esc(website)}"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="前往比賽官方網站">
+
+            ${esc(item.title)}
+
+          </a>
+          `
+
+          :
+
+          `
+          <span>
+
+            ${esc(item.title)}
+
+          </span>
+          `;
 
 
         return `
@@ -1063,9 +1284,11 @@ function render(){
                 class="check"
                 type="checkbox"
 
-                ${item.participating
+                ${
+                  item.participating
                   ? 'checked'
-                  : ''}
+                  : ''
+                }
 
                 data-id="${esc(item.title)}"
               >
@@ -1077,24 +1300,25 @@ function render(){
 
             <div class="title">
 
-              <a
-                href="${esc(website)}"
-                target="_blank"
-                rel="noopener noreferrer"
-                title="前往比賽官方網站"
-              >
-                ${esc(item.title)}
-              </a>
+              ${titleHTML}
 
 
               ${
                 chinese
-                ? `
-                  <div class="titleZh">
-                    ${esc(chinese)}
-                  </div>
+
+                ?
+
                 `
-                : ''
+                <div class="titleZh">
+
+                  ${esc(chinese)}
+
+                </div>
+                `
+
+                :
+
+                ''
               }
 
             </div>
@@ -1103,26 +1327,22 @@ function render(){
             <!-- DEADLINE -->
 
             <div class="deadline">
+
               ${fmt(item.deadline)}
-            </div>
 
-
-            <!-- RESULT DATE -->
-
-            <div class="resultDate">
-              ${fmt(item.resultDate)}
             </div>
 
 
             <!-- RESULT -->
 
-            <div class="statuscol">
+            <div>
 
               <button
                 class="resultBtn ${cls(item.result)}"
-                data-result-id="${esc(item.title)}"
-              >
+                data-result-id="${esc(item.title)}">
+
                 ${label(item.result)}
+
               </button>
 
             </div>
@@ -1137,9 +1357,9 @@ function render(){
   }
 
 
-  /* =================================================
-     CHECKBOX EVENTS
-  ================================================= */
+  /* ===================================================
+     CHECKBOX
+  =================================================== */
 
   document
     .querySelectorAll('.check')
@@ -1155,25 +1375,27 @@ function render(){
           );
 
 
-        if(item){
+        if(!item)
+          return;
 
-          item.participating =
-            check.checked;
 
-          persist();
+        item.participating =
+          check.checked;
 
-          render();
 
-        }
+        persist();
+
+
+        render();
 
       };
 
     });
 
 
-  /* =================================================
-     RESULT BUTTON EVENTS
-  ================================================= */
+  /* ===================================================
+     RESULT
+  =================================================== */
 
   document
     .querySelectorAll(
@@ -1202,13 +1424,14 @@ function render(){
     });
 
 
-  /* =================================================
+  /* ===================================================
      STATISTICS
-  ================================================= */
+  =================================================== */
 
   const joined =
     data.filter(
-      x => x.participating
+      x =>
+        x.participating
     );
 
 
@@ -1221,6 +1444,7 @@ function render(){
   document.getElementById(
     'trackingCount'
   ).textContent =
+
     joined.filter(
       x =>
         x.result === 'pending'
@@ -1230,16 +1454,20 @@ function render(){
   document.getElementById(
     'selectedCount'
   ).textContent =
+
     joined.filter(
       x =>
-        ['selected','honorable']
-        .includes(x.result)
+        [
+          'selected',
+          'honorable'
+        ].includes(x.result)
     ).length;
 
 
   document.getElementById(
     'winnerCount'
   ).textContent =
+
     joined.filter(
       x =>
         x.result === 'winner'
@@ -1249,7 +1477,7 @@ function render(){
 
 
 /* =====================================================
-   FILTER BUTTONS
+   FILTER
 ===================================================== */
 
 document
@@ -1301,9 +1529,8 @@ document
 
     button.onclick = () => {
 
-      if(!editing){
+      if(!editing)
         return;
-      }
 
 
       editing.result =
@@ -1324,7 +1551,7 @@ document
 
 
 /* =====================================================
-   CLOSE DIALOG
+   CLOSE
 ===================================================== */
 
 document.getElementById(
@@ -1337,7 +1564,7 @@ document.getElementById(
 
 
 /* =====================================================
-   REFRESH DATA
+   REFRESH
 ===================================================== */
 
 document.getElementById(
@@ -1350,7 +1577,7 @@ document.getElementById(
 
 
 /* =====================================================
-   BACKEND ACTION
+   BACKEND
 ===================================================== */
 
 document.getElementById(
@@ -1370,6 +1597,130 @@ document.getElementById(
 ===================================================== */
 
 load();
+
+
+/* =====================================================
+   AUTO CHECK
+
+   每 1 分鐘檢查一次
+   competitions.json
+
+   不會連 PosterTerritory。
+
+   只檢查自己的 JSON
+   有沒有發生變化。
+===================================================== */
+
+let lastSignature = '';
+
+
+async function checkForUpdates(){
+
+  try{
+
+    const response =
+      await fetch(
+        'competitions.json?ts=' +
+        Date.now(),
+        {
+          cache:'no-store'
+        }
+      );
+
+
+    if(!response.ok)
+      return;
+
+
+    const fresh =
+      await response.json();
+
+
+    if(!Array.isArray(fresh))
+      return;
+
+
+    const signature =
+      JSON.stringify(fresh);
+
+
+    /*
+      第一次只建立基準
+    */
+
+    if(!lastSignature){
+
+      lastSignature =
+        signature;
+
+      return;
+
+    }
+
+
+    /*
+      沒有變化
+    */
+
+    if(
+      signature ===
+      lastSignature
+    ){
+
+      return;
+
+    }
+
+
+    /*
+      有新資料
+    */
+
+    lastSignature =
+      signature;
+
+
+    console.log(
+      '偵測到 competitions.json 更新'
+    );
+
+
+    await load();
+
+
+  }
+
+  catch(error){
+
+    console.log(
+      '自動檢查失敗:',
+      error
+    );
+
+  }
+
+}
+
+
+/*
+  每 60 秒檢查
+*/
+
+setInterval(
+  checkForUpdates,
+  60000
+);
+
+
+/*
+  開頁面後 3 秒再檢查一次
+*/
+
+setTimeout(
+  checkForUpdates,
+  3000
+);
+
 
 </script>
 
