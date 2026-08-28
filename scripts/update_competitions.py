@@ -98,6 +98,143 @@ def same_domain(url):
 
 
 # ============================================================
+# 官方網站判斷
+# ============================================================
+
+SOCIAL_DOMAINS = {
+    "facebook.com", "instagram.com", "behance.net", "pinterest.com",
+    "linkedin.com", "youtube.com", "youtu.be", "twitter.com",
+    "x.com", "tiktok.com"
+}
+
+
+def hostname(url):
+    try:
+        return (urlparse(url).hostname or "").lower().removeprefix("www.")
+    except Exception:
+        return ""
+
+
+def is_social(url):
+    host = hostname(url)
+    return any(
+        host == domain or host.endswith("." + domain)
+        for domain in SOCIAL_DOMAINS
+    )
+
+
+def find_official_url(article_url):
+    """
+    從 PosterTerritory 文章內的外部連結尋找可能的主辦/官方網站。
+    不把 PosterTerritory 或社群網站當作官方競賽網址。
+    找不到時回傳空字串，不亂猜。
+    """
+    try:
+        html = download(article_url)
+        soup = BeautifulSoup(html, "html.parser")
+
+        candidates = []
+
+        for a in soup.find_all("a", href=True):
+            href = normalize_url(a.get("href", ""))
+            if not href:
+                continue
+
+            host = hostname(href)
+
+            if not host:
+                continue
+
+            if same_domain(href):
+                continue
+
+            if is_social(href):
+                continue
+
+            label = clean_text(
+                a.get_text(" ", strip=True)
+            ).lower()
+
+            score = 0
+
+            if any(word in label for word in [
+                "official", "website", "web site", "visit",
+                "apply", "enter", "submission", "competition",
+                "contest", "call for entries", "register"
+            ]):
+                score += 10
+
+            if any(word in host for word in [
+                "award", "competition", "biennale", "biennial",
+                "festival", "poster", "design", "graphic"
+            ]):
+                score += 3
+
+            candidates.append((score, href))
+
+        if candidates:
+            candidates.sort(
+                key=lambda item: item[0],
+                reverse=True
+            )
+            return candidates[0][1]
+
+    except Exception as error:
+        print(
+            "Official website lookup failed:",
+            error
+        )
+
+    return ""
+
+
+# ============================================================
+# 繁體中文翻譯
+# ============================================================
+
+TRANSLATION_URL = (
+    "https://api.mymemory.translated.net/get"
+)
+
+
+def translate_title_zh(title):
+    """
+    將英文比賽名稱翻成繁體中文。
+    翻譯失敗時回傳空字串，不影響整個 Action。
+    """
+    try:
+        response = session.get(
+            TRANSLATION_URL,
+            params={
+                "q": title,
+                "langpair": "en|zh-TW",
+            },
+            timeout=20
+        )
+
+        response.raise_for_status()
+
+        payload = response.json()
+
+        translated = clean_text(
+            payload
+            .get("responseData", {})
+            .get("translatedText", "")
+        )
+
+        if translated:
+            return translated
+
+    except Exception as error:
+        print(
+            "Translation failed:",
+            error
+        )
+
+    return ""
+
+
+# ============================================================
 # 日期解析
 # ============================================================
 
@@ -872,12 +1009,38 @@ def build_competitions(
             title_key
         )
 
+        print(
+            "Finding official website..."
+        )
+
+        official_url = find_official_url(url)
+
+        time.sleep(0.3)
+
+        print(
+            "Translating title..."
+        )
+
+        title_zh = translate_title_zh(title)
+
+        time.sleep(0.5)
+
         item = {
             "title": title,
+            "titleZh": title_zh,
             "deadline": deadline.isoformat(),
             "resultDate": "",
             "participating": False,
             "result": "pending",
+
+            # 官方比賽網站；找不到時保持空白
+            "officialUrl": official_url,
+
+            # PosterTerritory 原始資料頁
+            "sourceUrl": url,
+
+            # 保留舊欄位相容性：
+            # 前端新版會優先使用 officialUrl
             "url": url,
         }
 
@@ -1011,7 +1174,7 @@ def preserve_user_data(
         old = (
             by_url.get(
                 normalize_url(
-                    item["url"]
+                    item.get("url", "")
                 ).lower()
             )
             or
@@ -1045,6 +1208,24 @@ def preserve_user_data(
             )
             or ""
         )
+
+        if not item.get("titleZh"):
+            item["titleZh"] = old.get(
+                "titleZh",
+                ""
+            ) or ""
+
+        if not item.get("officialUrl"):
+            item["officialUrl"] = old.get(
+                "officialUrl",
+                ""
+            ) or ""
+
+        if not item.get("sourceUrl"):
+            item["sourceUrl"] = old.get(
+                "sourceUrl",
+                item.get("url", "")
+            ) or item.get("url", "")
 
         preserved += 1
 
@@ -1201,6 +1382,26 @@ def main():
     print(
         "Total competitions:",
         len(competitions)
+    )
+
+    official_count = sum(
+        1 for item in competitions
+        if item.get("officialUrl")
+    )
+
+    translated_count = sum(
+        1 for item in competitions
+        if item.get("titleZh")
+    )
+
+    print(
+        "Official websites:",
+        official_count
+    )
+
+    print(
+        "Traditional Chinese titles:",
+        translated_count
     )
 
     print(
