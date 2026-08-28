@@ -47,22 +47,9 @@ def clean_text(text):
 
 
 def parse_date(text):
-    """
-    支援：
-
-    August 31, 2026
-    31 August 2026
-    August 31
-    8 September 2026
-    Deadline: September 15, 2026
-    """
-
     text = clean_text(text)
 
-    # --------------------------------------------------
-    # Month Day, Year
-    # --------------------------------------------------
-
+    # August 31, 2026
     m = re.search(
         r"\b"
         r"(January|February|March|April|May|June|July|August|"
@@ -88,10 +75,7 @@ def parse_date(text):
             return ""
 
 
-    # --------------------------------------------------
-    # Day Month Year
-    # --------------------------------------------------
-
+    # 8 September 2026
     m = re.search(
         r"\b"
         r"(\d{1,2})"
@@ -117,10 +101,7 @@ def parse_date(text):
             return ""
 
 
-    # --------------------------------------------------
-    # Month Day without year
-    # --------------------------------------------------
-
+    # August 31
     m = re.search(
         r"\b"
         r"(January|February|March|April|May|June|July|August|"
@@ -146,70 +127,50 @@ def parse_date(text):
         except ValueError:
             return ""
 
-
     return ""
 
 
-def find_deadline(text):
+def extract_deadline(text):
     """
-    從單一比賽區塊中找 Deadline。
+    從文字中尋找 Deadline。
     """
 
     text = clean_text(text)
 
     patterns = [
-        r"New submission deadline\s*:?\s*(.*)",
-        r"Last deadline\s*:?\s*(.*)",
-        r"Deadline\s*:?\s*(.*)",
+        r"New submission deadline\s*:?\s*(.+)",
+        r"Last Deadline\s*:?\s*(.+)",
+        r"Last deadline\s*:?\s*(.+)",
+        r"Deadline\s*:?\s*(.+)",
     ]
 
     for pattern in patterns:
 
-        m = re.search(
+        match = re.search(
             pattern,
             text,
             re.I
         )
 
-        if m:
+        if match:
 
-            deadline = parse_date(
-                m.group(1)
+            result = parse_date(
+                match.group(1)
             )
 
-            if deadline:
-                return deadline
+            if result:
+                return result
 
     return ""
 
 
-def looks_like_deadline(text):
-    lower = text.lower()
-
-    return (
-        "deadline" in lower
-        or "last deadline" in lower
-        or "new submission deadline" in lower
-    )
-
-
 def clean_title(text):
-    """
-    清理比賽標題。
-    """
 
     text = clean_text(text)
 
-    # 移除 Deadline 後面的內容
-    text = re.split(
-        r"\b(?:deadline|last deadline|new submission deadline)\b",
-        text,
-        flags=re.I
-    )[0]
-
-    # 移除 More
+    # 移除多餘分類資訊
     text = re.sub(
-        r"\bMore\b.*$",
+        r"^Categories?:.*$",
         "",
         text,
         flags=re.I
@@ -217,88 +178,21 @@ def clean_title(text):
 
     text = clean_text(text)
 
-    # 過濾網站分類標題
-    bad = [
-        "Poster Competitions",
-        "Design programs and Summer Schools",
-        "Open calls and platforms with no deadline",
-    ]
-
-    for item in bad:
-
-        if text.lower() == item.lower():
-            return ""
-
     return text
 
 
-def get_best_container(link):
+def get_page_blocks(soup):
+
     """
-    找到「單一比賽」的 HTML 區塊。
+    將頁面中的文字元素按照實際出現順序整理。
 
-    不使用 h1/h2/h3/h4。
-    以 More 連結為中心向上尋找，
-    找到同時包含 Deadline 的最小容器。
-    """
-
-    current = link
-
-    candidates = []
-
-    for _ in range(8):
-
-        current = current.parent
-
-        if current is None:
-            break
-
-        text = clean_text(
-            current.get_text(
-                " ",
-                strip=True
-            )
-        )
-
-        if not text:
-            continue
-
-        # 太大的容器直接不要
-        if len(text) > 1200:
-            continue
-
-        if looks_like_deadline(text):
-
-            candidates.append(
-                (
-                    len(text),
-                    current
-                )
-            )
-
-    if not candidates:
-        return None
-
-    # 最小的符合條件容器
-    candidates.sort(
-        key=lambda x: x[0]
-    )
-
-    return candidates[0][1]
-
-
-def extract_title_from_container(container):
-    """
-    從單一比賽區塊中取得標題。
+    只處理主要內容區，不使用整個 body。
     """
 
-    # --------------------------------------------------
-    # 先找文字節點
-    # --------------------------------------------------
+    elements = []
 
-    lines = []
-
-    for element in container.find_all(
-        ["h1", "h2", "h3", "h4", "p", "div", "span"],
+    for element in soup.find_all(
+        ["h1", "h2", "h3", "h4", "p", "div", "a"]
     ):
 
         text = clean_text(
@@ -311,91 +205,19 @@ def extract_title_from_container(container):
         if not text:
             continue
 
-        if text in lines:
-            continue
-
-        lines.append(text)
-
-    # --------------------------------------------------
-    # 找 Deadline 前面的文字
-    # --------------------------------------------------
-
-    deadline_index = None
-
-    for i, line in enumerate(lines):
-
-        if looks_like_deadline(line):
-
-            deadline_index = i
-            break
-
-    if deadline_index is not None:
-
-        before = lines[
-            :deadline_index
-        ]
-
-        # 從最後面開始找最合理的標題
-        for line in reversed(before):
-
-            title = clean_title(
-                line
-            )
-
-            if (
-                title
-                and len(title) >= 5
-                and "more" not in title.lower()
-            ):
-                return title
-
-    # --------------------------------------------------
-    # 備用：直接從整個區塊文字判斷
-    # --------------------------------------------------
-
-    full_text = clean_text(
-        container.get_text(
-            " ",
-            strip=True
-        )
-    )
-
-    # Deadline 前面就是標題
-    m = re.search(
-        r"^(.*?)"
-        r"(?=(?:New submission deadline|Last deadline|Deadline))",
-        full_text,
-        re.I
-    )
-
-    if m:
-
-        title = clean_title(
-            m.group(1)
+        elements.append(
+            {
+                "element": element,
+                "text": text,
+            }
         )
 
-        if title:
-            return title
-
-    return ""
+    return elements
 
 
-def scrape_competitions(html):
+def find_more_links(soup):
 
-    soup = BeautifulSoup(
-        html,
-        "html.parser"
-    )
-
-    print(
-        "Page downloaded."
-    )
-
-    # --------------------------------------------------
-    # 找所有 More 連結
-    # --------------------------------------------------
-
-    more_links = []
+    links = []
 
     for link in soup.find_all(
         "a",
@@ -411,47 +233,193 @@ def scrape_competitions(html):
 
         if text.lower() == "more":
 
-            more_links.append(
-                link
+            links.append(link)
+
+    return links
+
+
+def get_previous_texts(more_link, limit=8):
+
+    """
+    從 More 往前找文字。
+    """
+
+    texts = []
+
+    current = more_link
+
+    for _ in range(limit):
+
+        previous = current.find_previous(
+            ["h1", "h2", "h3", "h4", "p", "div"]
+        )
+
+        if previous is None:
+            break
+
+        text = clean_text(
+            previous.get_text(
+                " ",
+                strip=True
             )
+        )
+
+        if text and text not in texts:
+
+            texts.append(text)
+
+        current = previous
+
+    return texts
+
+
+def extract_from_page(soup):
+
+    more_links = find_more_links(
+        soup
+    )
 
     print(
         "More links found:",
         len(more_links)
     )
 
-    items = []
+    results = []
 
-    # --------------------------------------------------
-    # 一個 More = 一個比賽
-    # --------------------------------------------------
+    for more_link in more_links:
 
-    for link in more_links:
+        url = more_link.get(
+            "href",
+            ""
+        ).strip()
 
-        container = get_best_container(
-            link
-        )
-
-        if container is None:
+        if not url:
             continue
 
-        container_text = clean_text(
-            container.get_text(
-                " ",
-                strip=True
-            )
+        # --------------------------------------------
+        # 往 More 前面找最近的文字
+        # --------------------------------------------
+
+        previous_texts = get_previous_texts(
+            more_link,
+            limit=10
         )
 
-        deadline = find_deadline(
-            container_text
-        )
+        deadline = ""
+
+        title = ""
+
+        # --------------------------------------------
+        # 找 Deadline
+        # --------------------------------------------
+
+        for text in previous_texts:
+
+            found_date = extract_deadline(
+                text
+            )
+
+            if found_date:
+
+                deadline = found_date
+                break
 
         if not deadline:
             continue
 
-        # --------------------------------------------------
-        # 只保留未來比賽
-        # --------------------------------------------------
+        # --------------------------------------------
+        # 找標題
+        # --------------------------------------------
+
+        deadline_index = None
+
+        for i, text in enumerate(
+            previous_texts
+        ):
+
+            if extract_deadline(text):
+
+                deadline_index = i
+                break
+
+        if deadline_index is not None:
+
+            for text in previous_texts[
+                deadline_index + 1:
+            ]:
+
+                candidate = clean_title(
+                    text
+                )
+
+                if not candidate:
+                    continue
+
+                if (
+                    len(candidate) < 5
+                ):
+                    continue
+
+                if (
+                    "deadline" in candidate.lower()
+                ):
+                    continue
+
+                title = candidate
+                break
+
+        # --------------------------------------------
+        # 如果上面的順序沒找到
+        # 再從所有 previous texts 找
+        # --------------------------------------------
+
+        if not title:
+
+            for text in previous_texts:
+
+                candidate = clean_title(
+                    text
+                )
+
+                if not candidate:
+                    continue
+
+                if len(candidate) < 5:
+                    continue
+
+                if "deadline" in candidate.lower():
+                    continue
+
+                if candidate.lower() == "more":
+                    continue
+
+                title = candidate
+                break
+
+        if not title:
+            continue
+
+        # --------------------------------------------
+        # 排除分類頁
+        # --------------------------------------------
+
+        bad_titles = [
+            "design programs",
+            "summer schools",
+            "open calls and platforms",
+            "stand with ukraine",
+            "poster call",
+        ]
+
+        if any(
+            bad in title.lower()
+            for bad in bad_titles
+        ):
+            continue
+
+        # --------------------------------------------
+        # 只保留未來日期
+        # --------------------------------------------
 
         try:
 
@@ -466,77 +434,35 @@ def scrape_competitions(html):
         if deadline_date < TODAY:
             continue
 
-        # --------------------------------------------------
-        # 標題
-        # --------------------------------------------------
-
-        title = extract_title_from_container(
-            container
-        )
-
-        if not title:
-            continue
-
-        # --------------------------------------------------
-        # URL
-        # --------------------------------------------------
-
-        url = link.get(
-            "href",
-            ""
-        ).strip()
-
-        if not url:
-            continue
-
-        # --------------------------------------------------
-        # 排除分類區塊
-        # --------------------------------------------------
-
-        bad_words = [
-            "design programs",
-            "summer schools",
-            "open calls and platforms",
-            "stand with ukraine",
-        ]
-
-        if any(
-            word in title.lower()
-            for word in bad_words
-        ):
-            continue
-
-        # --------------------------------------------------
-        # 去除重複
-        # --------------------------------------------------
+        # --------------------------------------------
+        # 去重
+        # --------------------------------------------
 
         duplicate = False
 
-        for item in items:
+        for item in results:
+
+            if item["url"] == url:
+                duplicate = True
 
             if (
-                item["url"] == url
-                or item["title"].lower()
+                item["title"].lower()
                 == title.lower()
             ):
-
                 duplicate = True
-                break
 
         if duplicate:
             continue
 
-        item = {
-            "title": title,
-            "deadline": deadline,
-            "resultDate": "",
-            "participating": False,
-            "result": "pending",
-            "url": url,
-        }
-
-        items.append(
-            item
+        results.append(
+            {
+                "title": title,
+                "deadline": deadline,
+                "resultDate": "",
+                "participating": False,
+                "result": "pending",
+                "url": url,
+            }
         )
 
         print(
@@ -548,18 +474,7 @@ def scrape_competitions(html):
             url
         )
 
-    # --------------------------------------------------
-    # 排序
-    # --------------------------------------------------
-
-    items.sort(
-        key=lambda x: (
-            x["deadline"],
-            x["title"].lower()
-        )
-    )
-
-    return items
+    return results
 
 
 def load_old_data():
@@ -589,7 +504,8 @@ def preserve_user_data(
     old_items
 ):
 
-    old_map = {}
+    old_by_title = {}
+    old_by_url = {}
 
     for item in old_items:
 
@@ -608,42 +524,43 @@ def preserve_user_data(
         )
 
         if title:
-            old_map[
+            old_by_title[
                 title.lower()
             ] = item
 
         if url:
-            old_map[
+            old_by_url[
                 url
             ] = item
 
     for item in new_items:
 
         old = (
-            old_map.get(
-                item["title"].lower()
-            )
-            or old_map.get(
+            old_by_url.get(
                 item["url"]
+            )
+            or old_by_title.get(
+                item["title"].lower()
             )
         )
 
-        if old:
+        if not old:
+            continue
 
-            item["participating"] = old.get(
-                "participating",
-                False
-            )
+        item["participating"] = old.get(
+            "participating",
+            False
+        )
 
-            item["result"] = old.get(
-                "result",
-                "pending"
-            )
+        item["result"] = old.get(
+            "result",
+            "pending"
+        )
 
-            item["resultDate"] = old.get(
-                "resultDate",
-                ""
-            )
+        item["resultDate"] = old.get(
+            "resultDate",
+            ""
+        )
 
 
 def save_data(items):
@@ -672,8 +589,8 @@ def main():
 
     response = requests.get(
         URL,
-        timeout=30,
-        headers=HEADERS
+        headers=HEADERS,
+        timeout=30
     )
 
     response.raise_for_status()
@@ -688,12 +605,28 @@ def main():
         len(response.content)
     )
 
-    # --------------------------------------------------
-    # 抓取
-    # --------------------------------------------------
+    soup = BeautifulSoup(
+        response.text,
+        "html.parser"
+    )
 
-    items = scrape_competitions(
-        response.text
+    print(
+        "Page downloaded."
+    )
+
+    items = extract_from_page(
+        soup
+    )
+
+    # --------------------------------------------
+    # 排序
+    # --------------------------------------------
+
+    items.sort(
+        key=lambda x: (
+            x["deadline"],
+            x["title"].lower()
+        )
     )
 
     print("")
@@ -702,9 +635,9 @@ def main():
         len(items)
     )
 
-    # --------------------------------------------------
-    # 安全機制
-    # --------------------------------------------------
+    # --------------------------------------------
+    # 安全保護
+    # --------------------------------------------
 
     if len(items) == 0:
 
@@ -713,9 +646,9 @@ def main():
             "refusing to overwrite competitions.json"
         )
 
-    # --------------------------------------------------
-    # 舊資料
-    # --------------------------------------------------
+    # --------------------------------------------
+    # 保留使用者資料
+    # --------------------------------------------
 
     old_items = load_old_data()
 
@@ -724,9 +657,9 @@ def main():
         old_items
     )
 
-    # --------------------------------------------------
-    # 寫入
-    # --------------------------------------------------
+    # --------------------------------------------
+    # 儲存
+    # --------------------------------------------
 
     save_data(
         items
@@ -734,9 +667,12 @@ def main():
 
     print("")
     print(
-        "Updated",
-        len(items),
-        "competitions."
+        "Updated competitions.json"
+    )
+
+    print(
+        "Total:",
+        len(items)
     )
 
     print("")
