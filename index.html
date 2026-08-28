@@ -66,7 +66,7 @@ button{
 }
 
 button:hover{
-  background:#f5f5f5
+  background:#f4f4f4
 }
 
 button.active{
@@ -80,7 +80,22 @@ button.active{
 }
 
 .backend{
-  border-color:#111
+  border-color:#111;
+  font-weight:700
+}
+
+.status{
+  font-size:12px;
+  color:#666;
+  margin:8px 0
+}
+
+.ok{
+  color:#16833b
+}
+
+.warn{
+  color:#a56b00
 }
 
 .table{
@@ -95,9 +110,12 @@ button.active{
     110px
     135px
     165px;
+
   gap:12px;
   align-items:center;
+
   padding:14px 5px;
+
   border-bottom:1px solid #ddd
 }
 
@@ -110,9 +128,25 @@ button.active{
 }
 
 .title{
-  font-weight:700;
   font-size:14px;
   line-height:1.35
+}
+
+.title a{
+  color:#111;
+  text-decoration:none;
+  font-weight:700
+}
+
+.title a:hover{
+  text-decoration:underline
+}
+
+.titleZh{
+  margin-top:4px;
+  color:#777;
+  font-size:12px;
+  font-weight:400
 }
 
 .deadline,
@@ -158,20 +192,6 @@ button.active{
   color:#2457a6
 }
 
-.status{
-  font-size:12px;
-  color:#666;
-  margin:8px 0
-}
-
-.ok{
-  color:#16833b
-}
-
-.warn{
-  color:#a56b00
-}
-
 .note{
   font-size:12px;
   color:#777;
@@ -179,8 +199,9 @@ button.active{
   line-height:1.5
 }
 
-.count{
-  color:#666
+.countInfo{
+  color:#777;
+  margin-left:12px
 }
 
 dialog{
@@ -215,6 +236,10 @@ dialog button{
   }
 
   .statuscol{
+    display:none
+  }
+
+  .resultDate{
     display:none
   }
 
@@ -259,44 +284,26 @@ dialog button{
     已有結果
   </button>
 
-  <!-- 前往 GitHub Actions 後台 -->
-  <button
-    id="backend"
-    class="backend"
-    title="前往 GitHub Actions 更新 PosterTerritory 資料">
-    ⚙ 前往後台更新
-  </button>
-
-  <!-- 重新讀取 competitions.json -->
-  <button
-    id="update"
-    class="update"
-    title="重新讀取目前最新的 competitions.json">
+  <button id="update" class="update">
     ↻ 更新比賽資料
   </button>
 
+  <button id="backend" class="backend">
+    ↗ 前往後台更新資料
+  </button>
+
 </div>
 
-<div id="status" class="status">
-  正在讀取比賽資料……
-</div>
+<div id="status" class="status"></div>
 
 <div class="table">
 
   <div class="row head">
-
     <div>參加</div>
-
     <div>COMPETITION</div>
-
     <div>DEADLINE</div>
-
     <div>RESULT DATE</div>
-
-    <div class="statuscol">
-      我的結果
-    </div>
-
+    <div class="statuscol">我的結果</div>
   </div>
 
   <div id="list"></div>
@@ -304,24 +311,12 @@ dialog button{
 </div>
 
 <div class="note">
-
-  ⚙「前往後台更新」會開啟 GitHub Actions，
-  請在 GitHub 中按 <b>Run workflow</b>，
-  由 PosterTerritory 抓取最新資料。
-
-  <br>
-
-  ↻「更新比賽資料」只會重新讀取最新的
-  <b>competitions.json</b>，不會重新抓取 PosterTerritory。
-
-  <br>
-
-  你的「參加」勾選與「我的結果」會保存在目前瀏覽器。
-
+  英文比賽名稱可直接點擊前往該比賽官方網站。
+  繁體中文名稱由後端資料自動產生。
+  參加狀態與比賽結果會保存在此瀏覽器。
 </div>
 
 </main>
-
 
 <dialog id="dlg">
 
@@ -332,25 +327,21 @@ dialog button{
   <button data-result="pending">
     🟡 待公布
   </button>
-
   <br>
 
   <button data-result="selected">
     🟢 入選
   </button>
-
   <br>
 
   <button data-result="honorable">
     🔵 優選／佳作
   </button>
-
   <br>
 
   <button data-result="winner">
     🏆 得獎
   </button>
-
   <br>
 
   <button data-result="not_selected">
@@ -359,13 +350,9 @@ dialog button{
 
 </dialog>
 
-
 <script>
 
-const KEY = 'jheng-poster-v4';
-
-const BACKEND_URL =
-  'https://github.com/jokerui666/poster-competition-tracker/actions/workflows/update-posterterritory.yml';
+const KEY = 'jheng-poster-v5';
 
 let data = [];
 let filter = 'all';
@@ -378,30 +365,18 @@ let editing = null;
 
 async function load(){
 
-  const status =
-    document.getElementById('status');
-
-  status.innerHTML =
-    '<span class="warn">● 正在讀取最新比賽資料……</span>';
-
   try{
 
-    const r = await fetch(
-      'competitions.json?ts=' + Date.now(),
-      {
+    const response =
+      await fetch('competitions.json?ts=' + Date.now(), {
         cache:'no-store'
-      }
-    );
+      });
 
-    if(!r.ok){
-      throw new Error('HTTP ' + r.status);
+    if(!response.ok){
+      throw new Error('JSON loading failed');
     }
 
-    const fresh = await r.json();
-
-    if(!Array.isArray(fresh)){
-      throw new Error('competitions.json 格式錯誤');
-    }
+    const fresh = await response.json();
 
     const old =
       JSON.parse(
@@ -410,60 +385,47 @@ async function load(){
 
     data = fresh.map(x => {
 
-      const o = old[x.title] || {};
+      const record =
+        old[x.title] || {};
 
       return {
+
         ...x,
 
         participating:
-          !!o.participating,
+          !!record.participating,
 
         result:
-          o.result ||
+          record.result ||
           x.result ||
           'pending',
 
         resultDate:
-          o.resultDate ||
+          record.resultDate ||
           x.resultDate ||
           ''
+
       };
 
     });
 
     render();
 
-    const now =
-      new Date();
-
-    const time =
-      now.toLocaleTimeString(
-        'zh-TW',
-        {
-          hour:'2-digit',
-          minute:'2-digit',
-          hour12:false
-        }
-      );
-
-    status.innerHTML =
+    document.getElementById('status').innerHTML =
       '<span class="ok">● 已載入最新資料</span>' +
-      '　<span class="count">' +
+      '<span class="countInfo">' +
       data.length +
-      ' 場比賽' +
-      '</span>' +
-      '　｜　<span class="count">' +
-      '最後更新 ' +
-      time +
-      '</span>';
+      ' 場比賽</span>';
 
-  }catch(e){
+  }
 
-    console.error(e);
+  catch(error){
 
-    status.innerHTML =
+    console.error(error);
+
+    document.getElementById('status').innerHTML =
       '<span class="warn">' +
-      '● 目前無法讀取最新資料，請稍後重新整理。' +
+      '目前無法讀取 competitions.json，請稍後重新整理。' +
       '</span>';
 
   }
@@ -477,11 +439,11 @@ async function load(){
 
 function persist(){
 
-  const o = {};
+  const saved = {};
 
   data.forEach(x => {
 
-    o[x.title] = {
+    saved[x.title] = {
 
       participating:
         x.participating,
@@ -498,7 +460,7 @@ function persist(){
 
   localStorage.setItem(
     KEY,
-    JSON.stringify(o)
+    JSON.stringify(saved)
   );
 
 }
@@ -518,12 +480,12 @@ function fmt(d){
 
 
 /* =========================
-   HTML 安全
+   HTML 安全處理
 ========================= */
 
 function esc(s){
 
-  return String(s).replace(
+  return String(s || '').replace(
     /[&<>"']/g,
     m => ({
       '&':'&amp;',
@@ -532,6 +494,25 @@ function esc(s){
       '"':'&quot;',
       "'":'&#039;'
     }[m])
+  );
+
+}
+
+
+/* =========================
+   取得繁體中文名稱
+   相容不同欄位名稱
+========================= */
+
+function getChineseTitle(x){
+
+  return (
+    x.traditionalChineseTitle ||
+    x.titleZh ||
+    x.title_zh ||
+    x.chineseTitle ||
+    x.zhTitle ||
+    ''
   );
 
 }
@@ -595,93 +576,109 @@ function cls(r){
 function render(){
 
   const rows =
-    data.filter(x =>
+    data.filter(x => {
 
-      filter === 'all'
+      if(filter === 'all')
+        return true;
 
-      ||
+      if(filter === 'joined')
+        return x.participating;
 
-      (
-        filter === 'joined' &&
-        x.participating
-      )
+      if(filter === 'pending')
+        return (
+          x.participating &&
+          x.result === 'pending'
+        );
 
-      ||
+      if(filter === 'result')
+        return (
+          x.participating &&
+          x.result !== 'pending'
+        );
 
-      (
-        filter === 'pending' &&
-        x.participating &&
-        x.result === 'pending'
-      )
+      return true;
 
-      ||
-
-      (
-        filter === 'result' &&
-        x.participating &&
-        x.result !== 'pending'
-      )
-
-    );
+    });
 
 
   document.getElementById('list').innerHTML =
+    rows.map(x => {
 
-    rows.map(x => `
+      const chinese =
+        getChineseTitle(x);
 
-      <div class="row">
+      const website =
+        x.url || '#';
 
-        <div>
+      return `
 
-          <input
-            class="check"
-            type="checkbox"
-            ${x.participating ? 'checked' : ''}
-            data-id="${esc(x.title)}"
-          >
+        <div class="row">
+
+          <div>
+            <input
+              class="check"
+              type="checkbox"
+              ${x.participating ? 'checked' : ''}
+              data-id="${esc(x.title)}"
+            >
+          </div>
+
+
+          <div class="title">
+
+            <a
+              href="${esc(website)}"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="前往比賽官方網站"
+            >
+              ${esc(x.title)}
+            </a>
+
+            ${
+              chinese
+              ? `
+                <div class="titleZh">
+                  ${esc(chinese)}
+                </div>
+              `
+              : ''
+            }
+
+          </div>
+
+
+          <div class="deadline">
+            ${fmt(x.deadline)}
+          </div>
+
+
+          <div class="resultDate">
+            ${fmt(x.resultDate)}
+          </div>
+
+
+          <div class="statuscol">
+
+            <button
+              class="resultBtn ${cls(x.result)}"
+              data-result-id="${esc(x.title)}"
+            >
+              ${label(x.result)}
+            </button>
+
+          </div>
 
         </div>
 
+      `;
 
-        <div class="title">
-
-          ${esc(x.title)}
-
-        </div>
+    }).join('');
 
 
-        <div class="deadline">
-
-          ${fmt(x.deadline)}
-
-        </div>
-
-
-        <div class="resultDate">
-
-          ${fmt(x.resultDate)}
-
-        </div>
-
-
-        <div class="statuscol">
-
-          <button
-            class="resultBtn ${cls(x.result)}"
-            data-result-id="${esc(x.title)}">
-
-            ${label(x.result)}
-
-          </button>
-
-        </div>
-
-      </div>
-
-    `).join('');
-
-
-  /* 勾選參加 */
+  /* =========================
+     勾選參加
+  ========================= */
 
   document
     .querySelectorAll('.check')
@@ -694,21 +691,24 @@ function render(){
             a => a.title === c.dataset.id
           );
 
-        if(!x) return;
+        if(x){
 
-        x.participating =
-          c.checked;
+          x.participating =
+            c.checked;
 
-        persist();
+          persist();
+          render();
 
-        render();
+        }
 
       };
 
     });
 
 
-  /* 修改結果 */
+  /* =========================
+     修改結果
+  ========================= */
 
   document
     .querySelectorAll('[data-result-id]')
@@ -723,32 +723,28 @@ function render(){
               b.dataset.resultId
           );
 
-        if(editing){
-
-          document
-            .getElementById('dlg')
-            .showModal();
-
-        }
+        document
+          .getElementById('dlg')
+          .showModal();
 
       };
 
     });
 
 
-  /* 統計 */
+  /* =========================
+     統計
+  ========================= */
 
   const joined =
     data.filter(
       x => x.participating
     );
 
-
   document.getElementById(
     'joinedCount'
   ).textContent =
     joined.length;
-
 
   document.getElementById(
     'trackingCount'
@@ -757,16 +753,14 @@ function render(){
       x => x.result === 'pending'
     ).length;
 
-
   document.getElementById(
     'selectedCount'
   ).textContent =
     joined.filter(
       x =>
         ['selected','honorable']
-          .includes(x.result)
+        .includes(x.result)
     ).length;
-
 
   document.getElementById(
     'winnerCount'
@@ -779,7 +773,7 @@ function render(){
 
 
 /* =========================
-   篩選
+   篩選按鈕
 ========================= */
 
 document
@@ -807,52 +801,7 @@ document
 
 
 /* =========================
-   前往 GitHub Actions
-========================= */
-
-document
-  .getElementById('backend')
-  .onclick = () => {
-
-    window.open(
-      BACKEND_URL,
-      '_blank'
-    );
-
-  };
-
-
-/* =========================
-   前端重新讀取資料
-========================= */
-
-document
-  .getElementById('update')
-  .onclick = async () => {
-
-    const btn =
-      document.getElementById('update');
-
-    const original =
-      btn.textContent;
-
-    btn.disabled = true;
-
-    btn.textContent =
-      '⟳ 讀取中……';
-
-    await load();
-
-    btn.disabled = false;
-
-    btn.textContent =
-      original;
-
-  };
-
-
-/* =========================
-   結果設定
+   結果選擇
 ========================= */
 
 document
@@ -861,18 +810,20 @@ document
 
     b.onclick = () => {
 
-      if(!editing) return;
+      if(editing){
 
-      editing.result =
-        b.dataset.result;
+        editing.result =
+          b.dataset.result;
 
-      persist();
+        persist();
 
-      document
-        .getElementById('dlg')
-        .close();
+        document
+          .getElementById('dlg')
+          .close();
 
-      render();
+        render();
+
+      }
 
     };
 
@@ -883,19 +834,54 @@ document
    關閉視窗
 ========================= */
 
-document
-  .getElementById('close')
-  .onclick = () => {
+document.getElementById(
+  'close'
+).onclick = () => {
 
-    document
-      .getElementById('dlg')
-      .close();
+  document
+    .getElementById('dlg')
+    .close();
 
-  };
+};
 
 
 /* =========================
-   初始載入
+   更新前端資料
+========================= */
+
+document.getElementById(
+  'update'
+).onclick = async () => {
+
+  const status =
+    document.getElementById('status');
+
+  status.innerHTML =
+    '<span class="warn">● 正在重新讀取比賽資料……</span>';
+
+  await load();
+
+};
+
+
+/* =========================
+   前往 GitHub Actions 後台
+========================= */
+
+document.getElementById(
+  'backend'
+).onclick = () => {
+
+  window.open(
+    'https://github.com/jokerui666/poster-competition-tracker/actions/workflows/update-posterterritory.yml',
+    '_blank'
+  );
+
+};
+
+
+/* =========================
+   啟動
 ========================= */
 
 load();
