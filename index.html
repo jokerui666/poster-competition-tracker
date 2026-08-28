@@ -1,52 +1,41 @@
 <!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>JHENG CHANG CHEN — Poster Competition Tracker</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>JHENG CHANG CHEN — Poster Competition Tracker</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#fff;color:#111;font-family:Arial,"Noto Sans TC",sans-serif}
-.wrap{max-width:1120px;margin:auto;padding:28px 18px 60px}header{border-bottom:3px solid #111;padding-bottom:14px;margin-bottom:12px}
-h1{font-size:clamp(28px,5vw,48px);margin:0;letter-spacing:-.02em}.sub{color:#666;margin-top:5px}
-.stats{display:flex;gap:18px;flex-wrap:wrap;margin:18px 0;font-size:14px}.stats b{font-size:18px}
-.controls{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0 16px}button,select{border:1px solid #bbb;background:#fff;border-radius:8px;padding:9px 12px;font-size:13px}
-button.active{background:#111;color:#fff;border-color:#111}.table{border-top:2px solid #111}
-.row{display:grid;grid-template-columns:46px minmax(260px,1fr) 110px 135px 165px;gap:12px;align-items:center;padding:14px 5px;border-bottom:1px solid #ddd}
-.head{background:#f4f4f4;color:#666;font-size:11px;font-weight:700;padding:9px 5px}.title{font-weight:700;font-size:14px;line-height:1.35}
-.deadline,.resultDate{font-size:12px;white-space:nowrap}.result{font-size:12px;white-space:nowrap;font-weight:700}
-.check{width:22px;height:22px;accent-color:#111;cursor:pointer}.resultBtn{width:100%;text-align:left;border-color:#ddd}
-.pending{color:#777}.green{color:#16833b}.red{color:#c62828}.gold{color:#a56b00}.blue{color:#2457a6}
-dialog{border:0;border-radius:12px;padding:20px;max-width:420px;width:calc(100% - 30px);box-shadow:0 10px 40px #0003}
-dialog::backdrop{background:#0005}dialog h3{margin-top:0}dialog button{margin-top:6px}.close{float:right}
-.note{font-size:12px;color:#777;margin-top:10px;line-height:1.5}
-@media(max-width:760px){.row{grid-template-columns:40px minmax(180px,1fr) 92px 125px}.statuscol{display:none}.head .statuscol{display:none}}
+*{box-sizing:border-box}body{margin:0;background:#fff;color:#111;font-family:Arial,"Noto Sans TC",sans-serif}.wrap{max-width:1120px;margin:auto;padding:28px 18px 60px}
+header{border-bottom:3px solid #111;padding-bottom:14px;margin-bottom:12px}h1{font-size:clamp(28px,5vw,48px);margin:0}.sub{color:#666;margin-top:5px}
+.stats{display:flex;gap:18px;flex-wrap:wrap;margin:18px 0;font-size:14px}.stats b{font-size:18px}.controls{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0 16px}
+button{border:1px solid #bbb;background:#fff;border-radius:8px;padding:9px 12px;font-size:13px;cursor:pointer}button.active{background:#111;color:#fff;border-color:#111}
+.update{margin-left:auto}.table{border-top:2px solid #111}.row{display:grid;grid-template-columns:46px minmax(260px,1fr) 110px 135px 165px;gap:12px;align-items:center;padding:14px 5px;border-bottom:1px solid #ddd}
+.head{background:#f4f4f4;color:#666;font-size:11px;font-weight:700;padding:9px 5px}.title{font-weight:700;font-size:14px;line-height:1.35}.deadline,.resultDate,.result{font-size:12px;white-space:nowrap}.result{font-weight:700}
+.check{width:22px;height:22px;accent-color:#111;cursor:pointer}.resultBtn{width:100%;text-align:left}.pending{color:#777}.green{color:#16833b}.red{color:#c62828}.gold{color:#a56b00}.blue{color:#2457a6}
+.note{font-size:12px;color:#777;margin-top:10px;line-height:1.5}.status{font-size:12px;color:#666;margin:8px 0}.ok{color:#16833b}.warn{color:#a56b00}
+dialog{border:0;border-radius:12px;padding:20px;max-width:420px;width:calc(100% - 30px);box-shadow:0 10px 40px #0003}dialog::backdrop{background:#0005}dialog button{margin-top:6px}.close{float:right}
+@media(max-width:760px){.row{grid-template-columns:40px minmax(180px,1fr) 92px 125px}.statuscol{display:none}}
 </style></head><body><main class="wrap">
 <header><h1>JHENG CHANG CHEN</h1><div class="sub">2026 POSTER COMPETITION TRACKER</div></header>
-<div class="stats">
-<span>已參加 <b id="joinedCount">0</b></span><span>追蹤中 <b id="trackingCount">0</b></span><span>入選 <b id="selectedCount">0</b></span><span>得獎 <b id="winnerCount">0</b></span>
-</div>
-<div class="controls">
-<button class="active" data-filter="all">全部</button><button data-filter="joined">我有參加</button><button data-filter="pending">待公布</button><button data-filter="result">已有結果</button>
-</div>
-<div class="table">
-<div class="row head"><div>參加</div><div>COMPETITION</div><div>DEADLINE</div><div>RESULT DATE</div><div class="statuscol">我的結果</div></div>
-<div id="list"></div></div>
-<div class="note">☑「我有參加」後才進入結果追蹤。系統可先填入結果，你也可以直接點擊「我的結果」修改；不需要第二層確認。</div>
+<div class="stats"><span>已參加 <b id="joinedCount">0</b></span><span>追蹤中 <b id="trackingCount">0</b></span><span>入選 <b id="selectedCount">0</b></span><span>得獎 <b id="winnerCount">0</b></span></div>
+<div class="controls"><button class="active" data-filter="all">全部</button><button data-filter="joined">我有參加</button><button data-filter="pending">待公布</button><button data-filter="result">已有結果</button><button id="update" class="update">↻ 更新比賽資料</button></div>
+<div id="status" class="status"></div>
+<div class="table"><div class="row head"><div>參加</div><div>COMPETITION</div><div>DEADLINE</div><div>RESULT DATE</div><div class="statuscol">我的結果</div></div><div id="list"></div></div>
+<div class="note">「↻ 更新比賽資料」會提醒你到 GitHub Actions 執行一次更新；網站平常不會持續連線 PosterTerritory。你的參加勾選與結果會保存在瀏覽器。</div>
 </main>
-<dialog id="dlg"><button class="close" id="close">×</button><h3 id="dlgTitle">修改結果</h3>
-<button data-result="pending">🟡 待公布</button><br><button data-result="selected">🟢 入選</button><br><button data-result="honorable">🔵 優選／佳作</button><br><button data-result="winner">🏆 得獎</button><br><button data-result="not_selected">🔴 未入選</button>
-</dialog>
+<dialog id="dlg"><button class="close" id="close">×</button><h3>修改結果</h3>
+<button data-result="pending">🟡 待公布</button><br><button data-result="selected">🟢 入選</button><br><button data-result="honorable">🔵 優選／佳作</button><br><button data-result="winner">🏆 得獎</button><br><button data-result="not_selected">🔴 未入選</button></dialog>
 <script>
-const initial=[{"id": 1, "title": "200 Posters for Carlo Collodi", "deadline": "2026-09-10", "resultDate": "", "participating": false, "result": "pending"}, {"id": 2, "title": "20th International Biennale of Theatre Poster", "deadline": "2026-09-08", "resultDate": "", "participating": false, "result": "pending"}, {"id": 3, "title": "Street Poster Kraków", "deadline": "2026-09-15", "resultDate": "", "participating": false, "result": "pending"}, {"id": 4, "title": "Luga Poster Biennale. II edition", "deadline": "2026-09-15", "resultDate": "", "participating": false, "result": "pending"}, {"id": 5, "title": "Posko Visual 2026 Open Call", "deadline": "2026-09-15", "resultDate": "", "participating": false, "result": "pending"}, {"id": 6, "title": "Communication Arts 2027 Typography Competition", "deadline": "2026-09-18", "resultDate": "", "participating": false, "result": "pending"}, {"id": 7, "title": "WE WANT JAZZ: MILES 100", "deadline": "2026-09-15", "resultDate": "", "participating": false, "result": "pending"}, {"id": 8, "title": "The Hiiibrand International Brand & Communication Design Awards", "deadline": "2026-08-31", "resultDate": "", "participating": false, "result": "pending"}, {"id": 9, "title": "7th Bolu International Poster Design Competition", "deadline": "2026-11-01", "resultDate": "", "participating": false, "result": "pending"}, {"id": 10, "title": "International Compost Awareness Week 2027 Poster Contest", "deadline": "2026-11-01", "resultDate": "", "participating": false, "result": "pending"}, {"id": 11, "title": "Poster for Tomorrow: WHAT IS DIGNITY?", "deadline": "2026-07-20", "resultDate": "", "participating": false, "result": "pending"}, {"id": 12, "title": "Still Human — Posterheroes 15th edition", "deadline": "2026-07-31", "resultDate": "", "participating": false, "result": "pending"}, {"id": 13, "title": "Poster for___. International Poster Competition – 5th Edition", "deadline": "2026-07-31", "resultDate": "", "participating": false, "result": "pending"}, {"id": 14, "title": "Antwerp Poster Fest", "deadline": "2026-08-18", "resultDate": "", "participating": false, "result": "pending"}, {"id": 15, "title": "International Poster Festival PLAKATFEST Mikołów 2026", "deadline": "2026-08-20", "resultDate": "", "participating": false, "result": "pending"}, {"id": 16, "title": "“BULLSEYE” International Jurized Traditional Turkish Archery Art Exhibition", "deadline": "2026-08-10", "resultDate": "", "participating": false, "result": "pending"}, {"id": 17, "title": "22nd “Jazz in the Ruins” — Jazz Simply Human", "deadline": "2026-07-17", "resultDate": "", "participating": false, "result": "pending"}, {"id": 18, "title": "JAGDA International Student Poster Award", "deadline": "2026-07-31", "resultDate": "", "participating": false, "result": "pending"}, {"id": 19, "title": "Poster Stellars — 6th Intercontinental Poster Competition", "deadline": "2026-07-01", "resultDate": "", "participating": false, "result": "pending"}, {"id": 20, "title": "Data: Forma 2026", "deadline": "2026-06-02", "resultDate": "", "participating": false, "result": "pending"}, {"id": 21, "title": "International Bandırma Bird Paradise Poster Festival 2026", "deadline": "2026-05-10", "resultDate": "", "participating": false, "result": "pending"}, {"id": 22, "title": "The 5th Posterist Exhibition", "deadline": "2026-05-03", "resultDate": "", "participating": false, "result": "pending"}, {"id": 23, "title": "Inspiring Hope Poster Show 2026", "deadline": "2026-04-30", "resultDate": "", "participating": false, "result": "pending"}, {"id": 24, "title": "Haapsalu Graphic Design Festival 2026", "deadline": "2026-04-28", "resultDate": "", "participating": false, "result": "pending"}, {"id": 25, "title": "7th International Student Poster Confrontations", "deadline": "2026-04-26", "resultDate": "", "participating": false, "result": "pending"}, {"id": 26, "title": "WHAT UNITES US 7", "deadline": "2026-04-20", "resultDate": "", "participating": false, "result": "pending"}, {"id": 27, "title": "CYCLE — International Online Group Exhibition", "deadline": "2026-04-20", "resultDate": "", "participating": false, "result": "pending"}, {"id": 28, "title": "ARTtention Prague International Poster Festival", "deadline": "2026-04-10", "resultDate": "", "participating": false, "result": "pending"}, {"id": 29, "title": "International Biennial Poster Design Terras Gauda 2026", "deadline": "2026-04-10", "resultDate": "", "participating": false, "result": "pending"}, {"id": 30, "title": "SAFEonLINE Poster Competition", "deadline": "2026-03-31", "resultDate": "", "participating": false, "result": "pending"}, {"id": 31, "title": "19th BICM International Poster Biennial in Mexico", "deadline": "2026-03-31", "resultDate": "", "participating": false, "result": "pending"}, {"id": 32, "title": "NUCLEAR SCAR: PAST · PRESENT · FUTURE", "deadline": "2026-03-01", "resultDate": "", "participating": false, "result": "pending"}, {"id": 33, "title": "Poetry Speaks Loud — A Poster for a Poet", "deadline": "2026-02-28", "resultDate": "", "participating": false, "result": "pending"}, {"id": 34, "title": "FLUID Design Forum — CUT", "deadline": "2026-02-25", "resultDate": "", "participating": false, "result": "pending"}, {"id": 35, "title": "100 Best Posters 25 Germany Austria Switzerland", "deadline": "2026-01-18", "resultDate": "", "participating": false, "result": "pending"}];const KEY='jheng-poster-final-v3';let data=JSON.parse(localStorage.getItem(KEY)||'null')||initial;
-let filter='all',editing=null;
-function save(){localStorage.setItem(KEY,JSON.stringify(data))}
-function fmt(d){return d?d.replaceAll('-','/'):'—'}
-function esc(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+const KEY='jheng-poster-v4';let data=[],filter='all',editing=null;
+async function load(){try{const r=await fetch('competitions.json?'+Date.now());if(!r.ok)throw 0;const fresh=await r.json();const old=JSON.parse(localStorage.getItem(KEY)||'{}');data=fresh.map(x=>{const o=old[x.title]||{};return {...x,participating:!!o.participating,result:o.result||x.result||'pending',resultDate:o.resultDate||x.resultDate||''}});render();document.getElementById('status').innerHTML='<span class="ok">● 已載入最新資料</span>'}catch(e){document.getElementById('status').innerHTML='<span class="warn">目前無法讀取最新資料，請稍後重新整理。</span>'}}
+function persist(){const o={};data.forEach(x=>o[x.title]={participating:x.participating,result:x.result,resultDate:x.resultDate});localStorage.setItem(KEY,JSON.stringify(o))}
+function fmt(d){return d?d.replaceAll('-','/'):'—'}function esc(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 function label(r){return {pending:'🟡 待公布',selected:'🟢 入選',honorable:'🔵 優選／佳作',winner:'🏆 得獎',not_selected:'🔴 未入選'}[r]||'🟡 待公布'}
 function cls(r){return r==='winner'?'gold':r==='selected'?'green':r==='honorable'?'blue':r==='not_selected'?'red':'pending'}
 function render(){let rows=data.filter(x=>filter==='all'||filter==='joined'&&x.participating||filter==='pending'&&x.participating&&x.result==='pending'||filter==='result'&&x.participating&&x.result!=='pending');
-document.getElementById('list').innerHTML=rows.map(x=>`<div class="row"><div><input class="check" type="checkbox" ${x.participating?'checked':''} data-id="${x.id}"></div><div class="title">${esc(x.title)}</div><div class="deadline">${fmt(x.deadline)}</div><div class="resultDate">${fmt(x.resultDate)}</div><div class="statuscol"><button class="resultBtn ${cls(x.result)}" data-result-id="${x.id}">${label(x.result)}</button></div></div>`).join('');
-document.querySelectorAll('.check').forEach(c=>c.onchange=()=>{let x=data.find(a=>a.id==c.dataset.id);x.participating=c.checked;save();render()});
-document.querySelectorAll('[data-result-id]').forEach(b=>b.onclick=()=>{editing=data.find(x=>x.id==b.dataset.resultId);document.getElementById('dlg').showModal()});
-let j=data.filter(x=>x.participating);document.getElementById('joinedCount').textContent=j.length;document.getElementById('trackingCount').textContent=j.filter(x=>x.result==='pending').length;document.getElementById('selectedCount').textContent=j.filter(x=>x.result==='selected'||x.result==='honorable').length;document.getElementById('winnerCount').textContent=j.filter(x=>x.result==='winner').length}
+document.getElementById('list').innerHTML=rows.map(x=>`<div class="row"><div><input class="check" type="checkbox" ${x.participating?'checked':''} data-id="${x.title}"></div><div class="title">${esc(x.title)}</div><div class="deadline">${fmt(x.deadline)}</div><div class="resultDate">${fmt(x.resultDate)}</div><div class="statuscol"><button class="resultBtn ${cls(x.result)}" data-result-id="${x.title}">${label(x.result)}</button></div></div>`).join('');
+document.querySelectorAll('.check').forEach(c=>c.onchange=()=>{let x=data.find(a=>a.title===c.dataset.id);x.participating=c.checked;persist();render()});
+document.querySelectorAll('[data-result-id]').forEach(b=>b.onclick=()=>{editing=data.find(x=>x.title===b.dataset.resultId);document.getElementById('dlg').showModal()});
+let j=data.filter(x=>x.participating);joinedCount.textContent=j.length;trackingCount.textContent=j.filter(x=>x.result==='pending').length;selectedCount.textContent=j.filter(x=>['selected','honorable'].includes(x.result)).length;winnerCount.textContent=j.filter(x=>x.result==='winner').length}
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.filter;document.querySelectorAll('[data-filter]').forEach(x=>x.classList.remove('active'));b.classList.add('active');render()});
-document.querySelectorAll('[data-result]').forEach(b=>b.onclick=()=>{if(editing){editing.result=b.dataset.result;save();document.getElementById('dlg').close();render()}});
-document.getElementById('close').onclick=()=>document.getElementById('dlg').close();render();
+document.querySelectorAll('[data-result]').forEach(b=>b.onclick=()=>{if(editing){editing.result=b.dataset.result;persist();dlg.close();render()}});
+close.onclick=()=>dlg.close();
+document.getElementById('update').onclick=()=>alert('請到 GitHub → Actions → Update PosterTerritory → Run workflow。更新完成後重新整理本頁即可。');
+load();
 </script></body></html>
