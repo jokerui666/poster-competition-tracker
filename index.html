@@ -1,71 +1,97 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
 
-<title>JHENG CHANG CHEN — Poster Competition Tracker</title>
+<meta charset="utf-8">
+
+<meta
+  name="viewport"
+  content="width=device-width,initial-scale=1">
+
+<title>
+JHENG CHANG CHEN — Poster Competition Tracker
+</title>
 
 <style>
+
 *{
-  box-sizing:border-box
+  box-sizing:border-box;
 }
 
 body{
   margin:0;
   background:#fff;
   color:#111;
-  font-family:Arial,"Noto Sans TC","Microsoft JhengHei",sans-serif
+  font-family:
+    Arial,
+    "Noto Sans TC",
+    "Microsoft JhengHei",
+    sans-serif;
 }
 
 .wrap{
   max-width:1180px;
   margin:auto;
-  padding:28px 24px 60px
+  padding:28px 24px 60px;
 }
+
+
+/* =====================================================
+   HEADER
+===================================================== */
 
 header{
   border-bottom:3px solid #111;
   padding-bottom:16px;
-  margin-bottom:18px
+  margin-bottom:18px;
 }
 
 h1{
   margin:0;
   font-size:clamp(30px,5vw,52px);
   line-height:1.05;
-  letter-spacing:-1px
+  letter-spacing:-1px;
 }
 
 .sub{
   color:#666;
   margin-top:7px;
-  font-size:15px
+  font-size:15px;
 }
+
+
+/* =====================================================
+   STATISTICS
+===================================================== */
 
 .stats{
   display:flex;
   gap:26px;
   flex-wrap:wrap;
   margin:20px 0;
-  font-size:14px
+  font-size:14px;
 }
 
 .stats span{
-  white-space:nowrap
+  white-space:nowrap;
 }
 
 .stats b{
   font-size:19px;
-  margin-left:3px
+  margin-left:3px;
 }
+
+
+/* =====================================================
+   CONTROLS
+===================================================== */
 
 .controls{
   display:flex;
   align-items:center;
   gap:8px;
   flex-wrap:wrap;
-  margin:14px 0 15px
+  margin:14px 0 15px;
 }
 
 button{
@@ -75,247 +101,375 @@ button{
   border-radius:9px;
   padding:10px 14px;
   font-size:13px;
-  cursor:pointer
+  cursor:pointer;
+  transition:.15s ease;
 }
 
 button:hover{
-  background:#f5f5f5
+  background:#f5f5f5;
+}
+
+button:active{
+  transform:translateY(1px);
 }
 
 button.active{
   background:#111;
   color:#fff;
-  border-color:#111
+  border-color:#111;
 }
 
 .refresh{
-  margin-left:auto
+  margin-left:auto;
 }
 
 .backend{
   font-weight:700;
-  border-color:#111
+  border-color:#111;
 }
+
+
+/* =====================================================
+   STATUS
+===================================================== */
 
 .status{
   display:flex;
   align-items:center;
   flex-wrap:wrap;
   gap:10px;
+
   min-height:24px;
+
   margin:9px 0 13px;
+
   font-size:12px;
-  color:#666
+  color:#666;
 }
 
 .statusMain{
-  color:#16833b
+  color:#16833b;
 }
 
 .statusMain.loading{
-  color:#a56b00
+  color:#a56b00;
 }
 
 .statusMain.error{
-  color:#c62828
+  color:#c62828;
 }
 
 .statusSep{
-  color:#bbb
+  color:#bbb;
 }
 
+
+/* =====================================================
+   TABLE
+===================================================== */
+
 .table{
-  border-top:2px solid #111
+  border-top:2px solid #111;
 }
 
 .row{
   display:grid;
-  grid-template-columns:48px minmax(300px,1fr) 125px 170px;
+
+  grid-template-columns:
+    48px
+    minmax(300px,1fr)
+    125px
+    170px;
+
   gap:14px;
+
   align-items:center;
+
   padding:15px 6px;
-  border-bottom:1px solid #ddd
+
+  border-bottom:1px solid #ddd;
 }
 
 .head{
   background:#f4f4f4;
+
   color:#666;
+
   font-size:11px;
+
   font-weight:700;
-  padding:10px 6px
+
+  padding:10px 6px;
 }
+
+
+/* =====================================================
+   COMPETITION TITLE
+===================================================== */
 
 .title{
   min-width:0;
-  line-height:1.35
+  line-height:1.35;
 }
 
+
 /*
-  英文比賽名稱：
-  只有 officialUrl 存在時才會變成連結。
-  不再使用 PosterTerritory 的 url 或 sourceUrl。
+  只有 sourceUrl 存在時才會變成連結。
+  sourceUrl = PosterTerritory 該場比賽介紹頁。
 */
 
 .title a{
   display:inline-block;
+
   color:#111;
+
   text-decoration:none;
+
   font-size:15px;
-  font-weight:700
+
+  font-weight:700;
 }
 
 .title a:hover{
-  text-decoration:underline
+  text-decoration:underline;
 }
 
 .title a::after{
   content:" ↗";
+
   color:#999;
-  font-size:11px
+
+  font-size:11px;
 }
 
 .titleZh{
   margin-top:4px;
+
   color:#777;
+
   font-size:12px;
+
   font-weight:400;
-  line-height:1.4
+
+  line-height:1.4;
 }
+
+
+/* =====================================================
+   DEADLINE
+===================================================== */
 
 .deadline{
   font-size:12px;
-  white-space:nowrap
+
+  white-space:nowrap;
 }
+
+
+/* =====================================================
+   RESULT
+===================================================== */
 
 .resultBtn{
   width:100%;
+
   text-align:left;
-  white-space:nowrap
+
+  white-space:nowrap;
 }
 
 .pending{
-  color:#777
+  color:#777;
 }
 
 .green{
-  color:#16833b
+  color:#16833b;
 }
 
 .red{
-  color:#c62828
+  color:#c62828;
 }
 
 .gold{
-  color:#a56b00
+  color:#a56b00;
 }
 
 .blue{
-  color:#2457a6
+  color:#2457a6;
 }
+
+
+/* =====================================================
+   CHECKBOX
+===================================================== */
 
 .check{
   width:22px;
+
   height:22px;
+
   accent-color:#111;
-  cursor:pointer
+
+  cursor:pointer;
 }
+
+
+/* =====================================================
+   EMPTY
+===================================================== */
 
 .empty{
   padding:35px 10px;
+
   color:#777;
+
   text-align:center;
-  font-size:13px
+
+  font-size:13px;
 }
+
+
+/* =====================================================
+   NOTE
+===================================================== */
 
 .note{
   margin-top:13px;
+
   color:#777;
+
   font-size:12px;
-  line-height:1.6
+
+  line-height:1.6;
 }
+
+
+/* =====================================================
+   DIALOG
+===================================================== */
 
 dialog{
   border:0;
+
   border-radius:12px;
+
   padding:20px;
+
   max-width:420px;
+
   width:calc(100% - 30px);
-  box-shadow:0 10px 40px #0003
+
+  box-shadow:
+    0 10px 40px #0003;
 }
 
 dialog::backdrop{
-  background:#0005
+  background:#0005;
 }
 
 dialog h3{
-  margin-top:0
+  margin-top:0;
 }
 
 dialog button{
-  margin-top:6px
+  margin-top:6px;
 }
 
 .close{
   float:right;
-  padding:4px 9px
+
+  padding:4px 9px;
 }
+
+
+/* =====================================================
+   MOBILE
+===================================================== */
 
 @media(max-width:760px){
 
   .wrap{
-    padding:22px 15px 45px
+    padding:22px 15px 45px;
   }
 
   h1{
-    font-size:32px
+    font-size:32px;
   }
 
   .stats{
-    gap:15px
+    gap:15px;
   }
 
   .controls{
-    align-items:stretch
+    align-items:stretch;
   }
 
   .refresh{
-    margin-left:0
+    margin-left:0;
   }
 
   .row{
-    grid-template-columns:38px minmax(180px,1fr) 90px;
+    grid-template-columns:
+      38px
+      minmax(180px,1fr)
+      90px;
+
     gap:9px;
-    padding:14px 4px
+
+    padding:14px 4px;
   }
 
   .head{
-    grid-template-columns:38px minmax(180px,1fr) 90px
+    grid-template-columns:
+      38px
+      minmax(180px,1fr)
+      90px;
   }
 
   .statuscol{
-    display:none
+    display:none;
   }
 
   .deadline{
-    font-size:11px
+    font-size:11px;
   }
 
   .title a{
-    font-size:14px
+    font-size:14px;
   }
+
 }
+
 </style>
+
 </head>
+
 
 <body>
 
 <main class="wrap">
 
+
+<!-- =====================================================
+     HEADER
+===================================================== -->
+
 <header>
-  <h1>JHENG CHANG CHEN</h1>
-  <div class="sub">2026 POSTER COMPETITION TRACKER</div>
+
+  <h1>
+    JHENG CHANG CHEN
+  </h1>
+
+  <div class="sub">
+    2026 POSTER COMPETITION TRACKER
+  </div>
+
 </header>
 
+
+<!-- =====================================================
+     STATISTICS
+===================================================== -->
 
 <div class="stats">
 
@@ -342,51 +496,106 @@ dialog button{
 </div>
 
 
+<!-- =====================================================
+     CONTROLS
+===================================================== -->
+
 <div class="controls">
 
-  <button class="active" data-filter="all">
+  <button
+    class="active"
+    data-filter="all">
+
     全部
+
   </button>
 
-  <button data-filter="joined">
+
+  <button
+    data-filter="joined">
+
     我有參加
+
   </button>
 
-  <button data-filter="pending">
+
+  <button
+    data-filter="pending">
+
     待公布
+
   </button>
 
-  <button data-filter="result">
+
+  <button
+    data-filter="result">
+
     已有結果
+
   </button>
 
-  <button id="refresh" class="refresh">
+
+  <button
+    id="refresh"
+    class="refresh">
+
     ↻ 重新整理資料
+
   </button>
 
-  <button id="backend" class="backend">
+
+  <button
+    id="backend"
+    class="backend">
+
     ⚙ 後台更新資料
+
   </button>
 
 </div>
 
 
-<div id="status" class="status">
+<!-- =====================================================
+     STATUS
+===================================================== -->
 
-  <span id="statusMain" class="statusMain">
+<div
+  id="status"
+  class="status">
+
+  <span
+    id="statusMain"
+    class="statusMain">
+
     ● 正在載入資料……
+
   </span>
 
-  <span id="statusCount"></span>
 
-  <span id="statusSep" class="statusSep"></span>
+  <span
+    id="statusCount">
+  </span>
 
-  <span id="statusTime"></span>
+
+  <span
+    id="statusSep"
+    class="statusSep">
+  </span>
+
+
+  <span
+    id="statusTime">
+  </span>
 
 </div>
 
 
+<!-- =====================================================
+     TABLE
+===================================================== -->
+
 <div class="table">
+
 
   <div class="row head">
 
@@ -394,13 +603,16 @@ dialog button{
       參加
     </div>
 
+
     <div>
       COMPETITION
     </div>
 
+
     <div>
       DEADLINE
     </div>
+
 
     <div>
       我的結果
@@ -408,115 +620,201 @@ dialog button{
 
   </div>
 
+
   <div id="list"></div>
+
 
 </div>
 
+
+<!-- =====================================================
+     NOTE
+===================================================== -->
 
 <div class="note">
 
   比賽依 Deadline 最新 → 最舊排序。
-  英文比賽名稱只有在後端找到真正官方網站時才會成為連結，
-  不會再連到 PosterTerritory。
+
+  <br>
+
+  英文比賽名稱會連結至
+  <b>PosterTerritory 該場比賽介紹頁</b>。
+
+  <br>
+
+  不會連結至 PosterTerritory 商店首頁。
+
+  <br>
+
   第二行為繁體中文名稱。
 
+  <br>
+
+  「↻ 重新整理資料」只會重新讀取目前的
+  <b>competitions.json</b>。
+
+  <br>
+
+  「⚙ 後台更新資料」會開啟 GitHub Actions，
+  執行 PosterTerritory 資料更新。
+
 </div>
+
 
 </main>
 
 
+<!-- =====================================================
+     RESULT DIALOG
+===================================================== -->
+
 <dialog id="dlg">
 
-  <button class="close" id="close">
+
+  <button
+    class="close"
+    id="close">
+
     ×
+
   </button>
+
 
   <h3>
     修改結果
   </h3>
 
+
   <button data-result="pending">
+
     🟡 待公布
+
   </button>
 
   <br>
+
 
   <button data-result="selected">
+
     🟢 入選
+
   </button>
 
   <br>
+
 
   <button data-result="honorable">
+
     🔵 優選／佳作
+
   </button>
 
   <br>
+
 
   <button data-result="winner">
+
     🏆 得獎
+
   </button>
 
   <br>
 
+
   <button data-result="not_selected">
+
     🔴 未入選
+
   </button>
+
 
 </dialog>
 
 
 <script>
 
-const KEY = 'jheng-poster-v7';
 
-/*
-  GitHub Actions 後台更新 Workflow
-*/
+/* =====================================================
+   SETTINGS
+===================================================== */
+
+const KEY =
+  'jheng-poster-v8';
+
+
 const BACKEND_URL =
   'https://github.com/jokerui666/poster-competition-tracker/actions/workflows/update-posterterritory.yml';
 
 
 let data = [];
+
 let filter = 'all';
+
 let editing = null;
 
 
+/* =====================================================
+   DOM
+===================================================== */
+
 const list =
-  document.getElementById('list');
+  document.getElementById(
+    'list'
+  );
+
 
 const statusMain =
-  document.getElementById('statusMain');
+  document.getElementById(
+    'statusMain'
+  );
+
 
 const statusCount =
-  document.getElementById('statusCount');
+  document.getElementById(
+    'statusCount'
+  );
+
 
 const statusSep =
-  document.getElementById('statusSep');
+  document.getElementById(
+    'statusSep'
+  );
+
 
 const statusTime =
-  document.getElementById('statusTime');
+  document.getElementById(
+    'statusTime'
+  );
+
 
 const dlg =
-  document.getElementById('dlg');
+  document.getElementById(
+    'dlg'
+  );
 
 
-/* =========================
-   日期格式
-========================= */
+/* =====================================================
+   FORMAT DATE
+===================================================== */
 
 function fmt(date){
 
-  return date
-    ? String(date).replaceAll('-', '/')
-    : '—';
+  if(!date){
+    return '—';
+  }
+
+  return String(date)
+    .replaceAll(
+      '-',
+      '/'
+    );
 
 }
 
 
-/* =========================
-   最後讀取時間
-========================= */
+/* =====================================================
+   FORMAT TIME
+===================================================== */
 
 function fmtTime(date){
 
@@ -524,10 +822,15 @@ function fmtTime(date){
     'zh-TW',
     {
       year:'numeric',
+
       month:'2-digit',
+
       day:'2-digit',
+
       hour:'2-digit',
+
       minute:'2-digit',
+
       hour12:false
     }
   ).format(date);
@@ -535,120 +838,153 @@ function fmtTime(date){
 }
 
 
-/* =========================
-   HTML 防注入
-========================= */
+/* =====================================================
+   ESCAPE HTML
+===================================================== */
 
 function esc(value){
 
-  return String(value || '')
-    .replace(
-      /[&<>"']/g,
-      m => ({
-        '&':'&amp;',
-        '<':'&lt;',
-        '>':'&gt;',
-        '"':'&quot;',
-        "'":'&#039;'
-      }[m])
-    );
+  return String(
+    value || ''
+  ).replace(
+    /[&<>"']/g,
 
-}
+    m => ({
 
+      '&':'&amp;',
 
-/* =========================
-   取得繁體中文名稱
-========================= */
+      '<':'&lt;',
 
-function getChineseTitle(item){
+      '>':'&gt;',
 
-  return (
-    item.titleZh ||
-    item.traditionalChineseTitle ||
-    item.title_zh ||
-    item.chineseTitle ||
-    item.zhTitle ||
-    ''
+      '"':'&quot;',
+
+      "'":'&#039;'
+
+    }[m])
+
   );
 
 }
 
 
-/* =========================
-   結果文字
-========================= */
+/* =====================================================
+   CHINESE TITLE
+===================================================== */
+
+function getChineseTitle(item){
+
+  return (
+
+    item.titleZh ||
+
+    item.traditionalChineseTitle ||
+
+    item.title_zh ||
+
+    item.chineseTitle ||
+
+    item.zhTitle ||
+
+    ''
+
+  );
+
+}
+
+
+/* =====================================================
+   RESULT LABEL
+===================================================== */
 
 function label(result){
 
   return {
 
-    pending:'🟡 待公布',
+    pending:
+      '🟡 待公布',
 
-    selected:'🟢 入選',
+    selected:
+      '🟢 入選',
 
-    honorable:'🔵 優選／佳作',
+    honorable:
+      '🔵 優選／佳作',
 
-    winner:'🏆 得獎',
+    winner:
+      '🏆 得獎',
 
-    not_selected:'🔴 未入選'
+    not_selected:
+      '🔴 未入選'
 
-  }[result] || '🟡 待公布';
+  }[result]
+
+  ||
+
+  '🟡 待公布';
 
 }
 
 
-/* =========================
-   結果顏色
-========================= */
+/* =====================================================
+   RESULT CLASS
+===================================================== */
 
 function cls(result){
 
   if(result === 'winner')
     return 'gold';
 
+
   if(result === 'selected')
     return 'green';
+
 
   if(result === 'honorable')
     return 'blue';
 
+
   if(result === 'not_selected')
     return 'red';
+
 
   return 'pending';
 
 }
 
 
-/* =========================
-   讀取 competitions.json
-========================= */
+/* =====================================================
+   LOAD competitions.json
+===================================================== */
 
 async function load(){
 
   statusMain.className =
     'statusMain loading';
 
+
   statusMain.textContent =
     '● 正在讀取最新資料……';
 
-  statusCount.textContent = '';
 
-  statusSep.textContent = '';
+  statusCount.textContent =
+    '';
 
-  statusTime.textContent = '';
+
+  statusSep.textContent =
+    '';
+
+
+  statusTime.textContent =
+    '';
 
 
   try{
 
-    /*
-      加上時間戳記，
-      避免瀏覽器使用舊的 competitions.json
-    */
-
     const response =
       await fetch(
-        'competitions.json?ts=' + Date.now(),
+        'competitions.json?ts=' +
+        Date.now(),
+
         {
           cache:'no-store'
         }
@@ -658,7 +994,8 @@ async function load(){
     if(!response.ok){
 
       throw new Error(
-        'HTTP ' + response.status
+        'HTTP ' +
+        response.status
       );
 
     }
@@ -678,61 +1015,74 @@ async function load(){
 
 
     /*
-      讀取使用者自己的參加／結果紀錄
+      讀取瀏覽器保存的
+      參加／結果資料
     */
 
     const old =
       JSON.parse(
-        localStorage.getItem(KEY) || '{}'
+        localStorage.getItem(
+          KEY
+        ) || '{}'
       );
 
 
     /*
-      將後端最新資料
-      與使用者自己的紀錄合併
+      合併後端資料
+      與使用者自己的紀錄
     */
 
-    data = fresh.map(item => {
+    data =
+      fresh.map(item => {
 
-      const saved =
-        old[item.title] || {};
+        const saved =
+          old[item.title] || {};
 
-      return {
 
-        ...item,
+        return {
 
-        participating:
-          !!saved.participating,
+          ...item,
 
-        result:
-          saved.result ||
-          item.result ||
-          'pending'
+          participating:
+            !!saved.participating,
 
-      };
+          result:
+            saved.result ||
+            item.result ||
+            'pending'
 
-    });
+        };
+
+      });
 
 
     /*
-      最新 Deadline 排在最上面
+      Deadline：
+
+      最新
+      ↓
+      最舊
     */
 
-    data.sort((a,b) => {
+    data.sort(
+      (a,b) => {
 
-      const dateA =
-        a.deadline
-          ? new Date(a.deadline)
-          : new Date(0);
+        const dateA =
+          a.deadline
+            ? new Date(a.deadline)
+            : new Date(0);
 
-      const dateB =
-        b.deadline
-          ? new Date(b.deadline)
-          : new Date(0);
 
-      return dateB - dateA;
+        const dateB =
+          b.deadline
+            ? new Date(b.deadline)
+            : new Date(0);
 
-    });
+
+        return dateB - dateA;
+
+      }
+    );
 
 
     render();
@@ -741,45 +1091,59 @@ async function load(){
     statusMain.className =
       'statusMain';
 
+
     statusMain.textContent =
       '● 已載入最新資料';
 
+
     statusCount.textContent =
-      data.length + ' 場比賽';
+      data.length +
+      ' 場比賽';
+
 
     statusSep.textContent =
       '|';
+
 
     statusTime.textContent =
       '最後讀取：' +
       fmtTime(new Date());
 
 
-  }catch(error){
+  }
+
+  catch(error){
 
     console.error(error);
+
 
     statusMain.className =
       'statusMain error';
 
+
     statusMain.textContent =
       '● 無法讀取最新資料';
+
 
     statusCount.textContent =
       '請確認 competitions.json';
 
-    statusSep.textContent = '';
 
-    statusTime.textContent = '';
+    statusSep.textContent =
+      '';
+
+
+    statusTime.textContent =
+      '';
 
   }
 
 }
 
 
-/* =========================
-   儲存使用者資料
-========================= */
+/* =====================================================
+   SAVE
+===================================================== */
 
 function persist(){
 
@@ -809,9 +1173,9 @@ function persist(){
 }
 
 
-/* =========================
-   畫面 render
-========================= */
+/* =====================================================
+   RENDER
+===================================================== */
 
 function render(){
 
@@ -821,124 +1185,171 @@ function render(){
       if(filter === 'all')
         return true;
 
+
       if(filter === 'joined')
         return item.participating;
 
-      if(filter === 'pending')
+
+      if(filter === 'pending'){
+
         return (
           item.participating &&
           item.result === 'pending'
         );
 
-      if(filter === 'result')
+      }
+
+
+      if(filter === 'result'){
+
         return (
           item.participating &&
           item.result !== 'pending'
         );
+
+      }
+
 
       return true;
 
     });
 
 
-  if(!rows.length){
+  if(rows.length === 0){
+
+    list.innerHTML = `
+
+      <div class="empty">
+
+        目前沒有符合條件的比賽。
+
+      </div>
+
+    `;
+
+  }
+
+
+  else{
 
     list.innerHTML =
-      '<div class="empty">' +
-      '目前沒有符合條件的比賽。' +
-      '</div>';
 
-  }else{
-
-    list.innerHTML =
       rows.map(item => {
+
+
+        /*
+          =========================================
+          最重要：
+
+          使用 sourceUrl
+
+          而不是 officialUrl
+          而不是 url
+
+          sourceUrl 就是：
+          PosterTerritory 該場比賽介紹頁
+          =========================================
+        */
+
+        const sourceWebsite =
+          item.sourceUrl || '';
+
 
         const chinese =
           getChineseTitle(item);
 
 
         /*
-          ========================================
-          最重要的修正
-          ========================================
+          有 sourceUrl：
+          英文名稱變成連結
 
-          只使用 officialUrl。
-
-          不使用：
-          item.url
-
-          不使用：
-          item.sourceUrl
-
-          因此英文名稱不會再全部連到
-          PosterTerritory。
-        */
-
-        const website =
-          item.officialUrl || '';
-
-
-        /*
-          有 officialUrl：
-          英文名稱變成官方網站連結
-
-          沒有 officialUrl：
-          英文名稱只顯示文字
+          沒有 sourceUrl：
+          純文字
         */
 
         const titleHTML =
-          website
+          sourceWebsite
 
-            ? `
-              <a
-                href="${esc(website)}"
-                target="_blank"
-                rel="noopener noreferrer"
-                title="前往比賽官方網站"
-              >
-                ${esc(item.title)}
-              </a>
-              `
+            ?
 
-            : `
-              <span>
-                ${esc(item.title)}
-              </span>
-              `;
+            `
+            <a
+              href="${esc(sourceWebsite)}"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="查看 PosterTerritory 比賽介紹"
+            >
+
+              ${esc(item.title)}
+
+            </a>
+            `
+
+            :
+
+            `
+            <span>
+
+              ${esc(item.title)}
+
+            </span>
+            `;
 
 
         return `
 
         <div class="row">
 
+
+          <!-- PARTICIPATION -->
+
           <div>
 
             <input
               class="check"
               type="checkbox"
-              ${item.participating ? 'checked' : ''}
+
+              ${
+                item.participating
+                  ? 'checked'
+                  : ''
+              }
+
               data-id="${esc(item.title)}"
             >
 
           </div>
 
 
+          <!-- COMPETITION -->
+
           <div class="title">
 
             ${titleHTML}
 
+
             ${
               chinese
-                ? `
-                  <div class="titleZh">
-                    ${esc(chinese)}
-                  </div>
-                  `
-                : ''
+
+                ?
+
+                `
+                <div class="titleZh">
+
+                  ${esc(chinese)}
+
+                </div>
+                `
+
+                :
+
+                ''
             }
 
           </div>
 
+
+          <!-- DEADLINE -->
 
           <div class="deadline">
 
@@ -946,6 +1357,8 @@ function render(){
 
           </div>
 
+
+          <!-- RESULT -->
 
           <div>
 
@@ -960,6 +1373,7 @@ function render(){
 
           </div>
 
+
         </div>
 
         `;
@@ -969,9 +1383,9 @@ function render(){
   }
 
 
-  /* =========================
-     參加 checkbox
-  ========================= */
+  /* ===================================================
+     CHECKBOX
+  =================================================== */
 
   document
     .querySelectorAll('.check')
@@ -997,6 +1411,7 @@ function render(){
 
         persist();
 
+
         render();
 
       };
@@ -1004,12 +1419,14 @@ function render(){
     });
 
 
-  /* =========================
-     結果按鈕
-  ========================= */
+  /* ===================================================
+     RESULT BUTTON
+  =================================================== */
 
   document
-    .querySelectorAll('[data-result-id]')
+    .querySelectorAll(
+      '[data-result-id]'
+    )
     .forEach(button => {
 
       button.onclick = () => {
@@ -1022,32 +1439,40 @@ function render(){
           );
 
 
-        if(editing)
+        if(editing){
+
           dlg.showModal();
+
+        }
 
       };
 
     });
 
 
-  /* =========================
-     統計數字
-  ========================= */
+  /* ===================================================
+     STATISTICS
+  =================================================== */
 
   const joined =
     data.filter(
-      x => x.participating
+      x =>
+        x.participating
     );
 
 
   document
-    .getElementById('joinedCount')
+    .getElementById(
+      'joinedCount'
+    )
     .textContent =
     joined.length;
 
 
   document
-    .getElementById('trackingCount')
+    .getElementById(
+      'trackingCount'
+    )
     .textContent =
     joined.filter(
       x =>
@@ -1056,7 +1481,9 @@ function render(){
 
 
   document
-    .getElementById('selectedCount')
+    .getElementById(
+      'selectedCount'
+    )
     .textContent =
     joined.filter(
       x =>
@@ -1068,7 +1495,9 @@ function render(){
 
 
   document
-    .getElementById('winnerCount')
+    .getElementById(
+      'winnerCount'
+    )
     .textContent =
     joined.filter(
       x =>
@@ -1078,12 +1507,14 @@ function render(){
 }
 
 
-/* =========================
-   篩選按鈕
-========================= */
+/* =====================================================
+   FILTER
+===================================================== */
 
 document
-  .querySelectorAll('[data-filter]')
+  .querySelectorAll(
+    '[data-filter]'
+  )
   .forEach(button => {
 
     button.onclick = () => {
@@ -1117,12 +1548,14 @@ document
   });
 
 
-/* =========================
-   結果修改
-========================= */
+/* =====================================================
+   RESULT SELECT
+===================================================== */
 
 document
-  .querySelectorAll('[data-result]')
+  .querySelectorAll(
+    '[data-result]'
+  )
   .forEach(button => {
 
     button.onclick = () => {
@@ -1137,7 +1570,9 @@ document
 
       persist();
 
+
       dlg.close();
+
 
       render();
 
@@ -1146,12 +1581,14 @@ document
   });
 
 
-/* =========================
-   關閉結果視窗
-========================= */
+/* =====================================================
+   CLOSE DIALOG
+===================================================== */
 
 document
-  .getElementById('close')
+  .getElementById(
+    'close'
+  )
   .onclick = () => {
 
     dlg.close();
@@ -1159,12 +1596,14 @@ document
   };
 
 
-/* =========================
-   前端重新讀取 competitions.json
-========================= */
+/* =====================================================
+   REFRESH
+===================================================== */
 
 document
-  .getElementById('refresh')
+  .getElementById(
+    'refresh'
+  )
   .onclick = () => {
 
     load();
@@ -1172,12 +1611,14 @@ document
   };
 
 
-/* =========================
-   前往 GitHub Actions 後台
-========================= */
+/* =====================================================
+   BACKEND GITHUB ACTION
+===================================================== */
 
 document
-  .getElementById('backend')
+  .getElementById(
+    'backend'
+  )
   .onclick = () => {
 
     window.open(
@@ -1188,9 +1629,9 @@ document
   };
 
 
-/* =========================
-   頁面第一次載入
-========================= */
+/* =====================================================
+   INITIAL LOAD
+===================================================== */
 
 load();
 
