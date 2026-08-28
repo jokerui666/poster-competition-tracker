@@ -100,7 +100,7 @@ def parse_date(text):
 
 return f"{year:04d}-{MONTHS[month]}-{day:02d}"
 
-    return f"{year:04d}-{MONTHS[month]}-{day:02d}"
+
 
 
 def get_title(element):
