@@ -10,15 +10,16 @@ from bs4 import BeautifulSoup
 
 URL = "https://www.posterterritory.com/poster-competitions/"
 
-BASE_URL = "https://www.posterterritory.com"
-
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/131.0 Safari/537.36"
     ),
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept": (
+        "text/html,application/xhtml+xml,"
+        "application/xml;q=0.9,*/*;q=0.8"
+    ),
     "Accept-Language": "en-US,en;q=0.9",
 }
 
@@ -50,21 +51,25 @@ def clean_text(text):
 
 
 def parse_date(text):
+
     text = clean_text(text)
 
     patterns = [
+
+        # August 31, 2026
         re.compile(
             r"\b"
             r"(January|February|March|April|May|June|July|August|"
             r"September|October|November|December)"
-            r"\s+"
-            r"(\d{1,2})"
+            r"\s+(\d{1,2})"
             r"(?:st|nd|rd|th)?"
             r"(?:,\s*|\s+)"
             r"(\d{4})"
             r"\b",
             re.IGNORECASE,
         ),
+
+        # 31 August 2026
         re.compile(
             r"\b"
             r"(\d{1,2})"
@@ -123,71 +128,76 @@ def parse_date(text):
             ).isoformat()
 
         except ValueError:
+
             return ""
 
     return ""
 
 
 def clean_title(title):
+
     title = clean_text(title)
 
     if not title:
         return ""
 
-    # 移除 Categories 後面的內容
+    # Categories 後面全部不要
     title = re.split(
         r"\bCategories\s*:",
         title,
         maxsplit=1,
-        flags=re.IGNORECASE,
+        flags=re.IGNORECASE
     )[0]
 
-    # 移除 Deadline 後面的內容
+    # Deadline 後面不要
     title = re.split(
         r"\bDeadline\b",
         title,
         maxsplit=1,
-        flags=re.IGNORECASE,
+        flags=re.IGNORECASE
     )[0]
 
-    # 移除 Last Deadline 後面的內容
+    # Last Deadline 後面不要
     title = re.split(
         r"\bLast\s+Deadline\b",
         title,
         maxsplit=1,
-        flags=re.IGNORECASE,
+        flags=re.IGNORECASE
     )[0]
 
-    # 移除網站常見尾巴
+    # 移除 Brand Awards and Design Awards
     title = re.sub(
         r"\s+Brand Awards and Design Awards\.?",
         "",
         title,
-        flags=re.IGNORECASE,
+        flags=re.IGNORECASE
     )
 
+    # 移除尾端 Last
     title = re.sub(
         r"\s+\bLast\b\s*$",
         "",
         title,
-        flags=re.IGNORECASE,
+        flags=re.IGNORECASE
     )
 
+    # 移除尾端 More
     title = re.sub(
         r"\s+\bMore\b\s*$",
         "",
         title,
-        flags=re.IGNORECASE,
+        flags=re.IGNORECASE
     )
 
-    title = title.strip(
-        " \t\r\n-–—:;,.|"
+    return clean_text(
+        title.strip(
+            " \t\r\n-–—:;,.|"
+        )
     )
-
-    return clean_text(title)
 
 
 def is_noise(text):
+
     text = clean_text(text)
 
     if not text:
@@ -203,83 +213,53 @@ def is_noise(text):
         "submission",
         "discover",
         "learn more",
-        "deadline",
     }
 
     return text.lower() in noise
 
 
-def is_competition_url(url):
+def is_valid_external_url(url):
+
     if not url:
         return False
 
-    absolute = urljoin(
-        BASE_URL,
+    url = urljoin(
+        URL,
         url
     )
 
-    lowered = absolute.lower()
+    lowered = url.lower()
 
-    if "posterterritory.com" not in lowered:
+    # #content 這種頁內連結不要
+    if "#" in lowered:
         return False
 
-    if lowered.rstrip("/") == BASE_URL.lower():
-        return False
+    # PosterTerritory 自己的首頁 / 分類頁不要
+    if "posterterritory.com" in lowered:
 
-    if "/poster-competitions/" in lowered:
-        return False
+        if (
+            lowered.rstrip("/")
+            == "https://www.posterterritory.com"
+        ):
+            return False
 
-    if "/category/" in lowered:
-        return False
-
-    if "/author/" in lowered:
-        return False
-
-    if "/page/" in lowered:
-        return False
+        if "/poster-competitions" in lowered:
+            return False
 
     return True
 
 
-def find_container(anchor):
-    """
-    從 More / competition link 往上找可能包含
-    標題與 Deadline 的區塊。
-    """
+def extract_competitions(soup):
 
-    current = anchor
+    print(
+        "Scanning page structure..."
+    )
 
-    for _ in range(8):
+    # ------------------------------------------------
+    # 只按照真正的內容順序讀取
+    # ------------------------------------------------
 
-        if current is None:
-            break
-
-        text = clean_text(
-            current.get_text(
-                " ",
-                strip=True
-            )
-        )
-
-        if (
-            text
-            and "deadline" in text.lower()
-            and len(text) <= 1200
-        ):
-            return current
-
-        current = current.parent
-
-    return anchor.parent
-
-
-def extract_title_from_container(container):
-    """
-    優先找標題元素。
-    如果沒有，再從文字中清理。
-    """
-
-    headings = container.find_all(
+    elements = soup.find_all(
         [
             "h1",
             "h2",
@@ -287,296 +267,213 @@ def extract_title_from_container(container):
             "h4",
             "h5",
             "h6",
+            "p",
+            "a",
         ]
     )
 
-    for heading in headings:
-
-        text = clean_text(
-            heading.get_text(
-                " ",
-                strip=True
-            )
-        )
-
-        if not text:
-            continue
-
-        title = clean_title(text)
-
-        if (
-            title
-            and len(title) >= 4
-            and not is_noise(title)
-        ):
-            return title
-
-    # 如果沒有 heading，
-    # 嘗試尋找較像標題的連結文字
-
-    links = container.find_all("a")
-
-    candidates = []
-
-    for link in links:
-
-        text = clean_text(
-            link.get_text(
-                " ",
-                strip=True
-            )
-        )
-
-        if not text:
-            continue
-
-        if text.lower() == "more":
-            continue
-
-        if is_noise(text):
-            continue
-
-        if len(text) > 300:
-            continue
-
-        candidates.append(text)
-
-    if candidates:
-
-        candidates.sort(
-            key=len,
-            reverse=True
-        )
-
-        title = clean_title(
-            candidates[0]
-        )
-
-        if title:
-            return title
-
-    # 最後才從整個 container 文字處理
-
-    text = clean_text(
-        container.get_text(
-            " ",
-            strip=True
-        )
-    )
-
-    if not text:
-        return ""
-
-    title = re.split(
-        r"\bDeadline\b",
-        text,
-        maxsplit=1,
-        flags=re.IGNORECASE,
-    )[0]
-
-    return clean_title(title)
-
-
-def extract_competitions(soup):
-
     print(
-        "Searching competition blocks..."
+        "Content elements:",
+        len(elements)
     )
 
     results = []
 
-    anchors = soup.find_all("a")
+    current_title = ""
+    current_deadline = ""
 
-    print(
-        "Total links:",
-        len(anchors)
-    )
+    # 最近一次找到的 More
+    # 用來建立完整項目
 
-    processed_urls = set()
-
-    for anchor in anchors:
-
-        href = clean_text(
-            anchor.get(
-                "href",
-                ""
-            )
-        )
+    for element in elements:
 
         text = clean_text(
-            anchor.get_text(
+            element.get_text(
                 " ",
                 strip=True
             )
         )
 
-        # -----------------------------------------
-        # 只處理 More 或可能是比賽頁面的連結
-        # -----------------------------------------
-
-        is_more = (
-            text.lower() == "more"
-        )
-
-        if not is_more and not is_competition_url(href):
+        if not text:
             continue
 
-        absolute_url = urljoin(
-            BASE_URL,
-            href
-        )
+        # ==================================================
+        # ① More
+        # ==================================================
 
-        if absolute_url in processed_urls:
-            continue
+        if element.name == "a":
 
-        container = find_container(
-            anchor
-        )
+            if text.lower() != "more":
+                continue
 
-        if container is None:
-            continue
-
-        container_text = clean_text(
-            container.get_text(
-                " ",
-                strip=True
+            href = clean_text(
+                element.get(
+                    "href",
+                    ""
+                )
             )
-        )
 
-        if not container_text:
-            continue
+            # 沒有標題或 deadline，
+            # 不能建立比賽
+            if not current_title:
+                continue
 
-        deadline = parse_date(
-            container_text
-        )
+            if not current_deadline:
+                continue
 
-        if not deadline:
-            continue
+            if not is_valid_external_url(
+                href
+            ):
+                continue
 
-        title = extract_title_from_container(
-            container
-        )
+            url = urljoin(
+                URL,
+                href
+            )
 
-        if not title:
-            continue
+            title = clean_title(
+                current_title
+            )
 
-        # -----------------------------------------
-        # 過濾明顯不是比賽的內容
-        # -----------------------------------------
+            if not title:
+                continue
 
-        if is_noise(title):
-            continue
+            if is_noise(title):
+                continue
 
-        if len(title) < 4:
-            continue
+            item = {
+                "title": title,
+                "deadline": current_deadline,
+                "resultDate": "",
+                "participating": False,
+                "result": "pending",
+                "url": url,
+            }
 
-        if len(title) > 250:
-            continue
+            # 去重
+            duplicate = False
 
-        # -----------------------------------------
-        # URL
-        # -----------------------------------------
+            for old in results:
 
-        if is_more:
-
-            # More 本身沒有 href 時，
-            # 往 container 找其他連結
-
-            candidate_url = ""
-
-            for link in container.find_all("a"):
-
-                candidate = clean_text(
-                    link.get(
-                        "href",
-                        ""
-                    )
-                )
-
-                if not candidate:
-                    continue
-
-                candidate_absolute = urljoin(
-                    BASE_URL,
-                    candidate
-                )
-
-                if is_competition_url(
-                    candidate_absolute
+                if (
+                    old["url"].lower()
+                    == url.lower()
                 ):
-
-                    candidate_url = (
-                        candidate_absolute
-                    )
-
+                    duplicate = True
                     break
 
-            if candidate_url:
-                absolute_url = candidate_url
+                if (
+                    old["title"].lower()
+                    == title.lower()
+                ):
+                    duplicate = True
+                    break
 
-        if not is_competition_url(
-            absolute_url
+            if not duplicate:
+
+                results.append(
+                    item
+                )
+
+                print(
+                    f"FOUND {len(results)}:"
+                )
+
+                print(
+                    "  TITLE:",
+                    title
+                )
+
+                print(
+                    "  DEADLINE:",
+                    current_deadline
+                )
+
+                print(
+                    "  URL:",
+                    url
+                )
+
+                print("")
+
+            # 一個 competition 完成
+            current_title = ""
+            current_deadline = ""
+
+            continue
+
+        # ==================================================
+        # ② Deadline
+        # ==================================================
+
+        parsed = parse_date(
+            text
+        )
+
+        if (
+            parsed
+            and re.search(
+                r"\bdeadline\b",
+                text,
+                re.IGNORECASE
+            )
         ):
+
+            current_deadline = parsed
+
+            # Deadline 前面的文字可能就是標題
+            before = re.split(
+                r"\bdeadline\b",
+                text,
+                maxsplit=1,
+                flags=re.IGNORECASE
+            )[0]
+
+            before = clean_title(
+                before
+            )
+
+            if before:
+
+                # 如果這一段本身包含真正標題
+                current_title = before
+
             continue
 
-        processed_urls.add(
-            absolute_url
-        )
+        # ==================================================
+        # ③ 標題
+        # ==================================================
 
-        item = {
-            "title": title,
-            "deadline": deadline,
-            "resultDate": "",
-            "participating": False,
-            "result": "pending",
-            "url": absolute_url,
-        }
+        # 如果目前還沒有 deadline，
+        # 才把內容當成可能的標題
+        if not current_deadline:
 
-        duplicate = False
+            if is_noise(text):
+                continue
 
-        for old in results:
+            # 太長通常是整段網站介紹，不是比賽名稱
+            if len(text) > 250:
+                continue
 
-            if (
-                old["url"].lower()
-                == absolute_url.lower()
-            ):
-                duplicate = True
-                break
+            candidate = clean_title(
+                text
+            )
 
-            if (
-                old["title"].lower()
-                == title.lower()
-            ):
-                duplicate = True
-                break
+            if not candidate:
+                continue
 
-        if duplicate:
-            continue
+            # 排除網站區塊標題
+            blocked = {
+                "poster competitions",
+                "design programs and summer schools",
+                "open calls and platforms with no deadline",
+                "design for change",
+            }
 
-        results.append(
-            item
-        )
+            if candidate.lower() in blocked:
+                continue
 
-        print(
-            f"FOUND {len(results)}:"
-        )
-
-        print(
-            "  TITLE:",
-            title
-        )
-
-        print(
-            "  DEADLINE:",
-            deadline
-        )
-
-        print(
-            "  URL:",
-            absolute_url
-        )
-
-        print("")
+            current_title = candidate
 
     return results
 
@@ -604,7 +501,7 @@ def load_old_data():
     except Exception as error:
 
         print(
-            "Warning: unable to read old competitions.json:",
+            "Warning:",
             error
         )
 
@@ -651,7 +548,7 @@ def preserve_old_user_data(
                 title.lower()
             ] = item
 
-    preserved = 0
+    count = 0
 
     for item in new_items:
 
@@ -691,11 +588,11 @@ def preserve_old_user_data(
             or ""
         )
 
-        preserved += 1
+        count += 1
 
     print(
         "Preserved existing user data:",
-        preserved
+        count
     )
 
 
@@ -770,9 +667,9 @@ def main():
         len(competitions)
     )
 
-    # -----------------------------------------
-    # 只保留今天或未來的比賽
-    # -----------------------------------------
+    # ------------------------------------------------
+    # 只保留今天及未來
+    # ------------------------------------------------
 
     today = date.today()
 
@@ -786,22 +683,17 @@ def main():
                 item["deadline"]
             )
 
-        except (
-            ValueError,
-            TypeError
-        ):
+        except ValueError:
+
             continue
 
         if deadline >= today:
+
             future.append(
                 item
             )
 
     competitions = future
-
-    # -----------------------------------------
-    # 排序
-    # -----------------------------------------
 
     competitions.sort(
         key=lambda item: (
@@ -815,26 +707,15 @@ def main():
         len(competitions)
     )
 
-    # -----------------------------------------
+    # ------------------------------------------------
     # 安全保護
-    #
-    # 如果網站突然改版，
-    # 不允許把 competitions.json
-    # 覆蓋成空檔案。
-    # -----------------------------------------
+    # ------------------------------------------------
 
-    MINIMUM_COMPETITIONS = 3
-
-    if len(competitions) < MINIMUM_COMPETITIONS:
+    if len(competitions) < 3:
 
         print("")
         print(
             "ERROR: Too few competitions parsed."
-        )
-
-        print(
-            f"Found only {len(competitions)} "
-            f"future competitions."
         )
 
         print(
@@ -843,9 +724,9 @@ def main():
 
         raise SystemExit(1)
 
-    # -----------------------------------------
-    # 保留原本使用者資料
-    # -----------------------------------------
+    # ------------------------------------------------
+    # 保留舊資料
+    # ------------------------------------------------
 
     old_data = load_old_data()
 
@@ -854,9 +735,9 @@ def main():
         old_data
     )
 
-    # -----------------------------------------
-    # 寫入 JSON
-    # -----------------------------------------
+    # ------------------------------------------------
+    # 儲存
+    # ------------------------------------------------
 
     save_json(
         competitions
@@ -872,7 +753,7 @@ def main():
     )
 
     print(
-        "Total competitions:",
+        "Total:",
         len(competitions)
     )
 
