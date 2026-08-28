@@ -4,15 +4,7 @@ import re
 import requests
 from bs4 import BeautifulSoup
 
-URL = "https://www.posterterritory.com/poster-competitions/"
-
-HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/131.0 Safari/537.36"
-    )
-}
+API_URL = "https://www.posterterritory.com/wp-json/wp/v2/posts"
 
 MONTHS = {
     "january": "01",
@@ -29,240 +21,273 @@ MONTHS = {
     "december": "12",
 }
 
+MONTHS_SHORT = {
+    "jan": "01",
+    "feb": "02",
+    "mar": "03",
+    "apr": "04",
+    "may": "05",
+    "jun": "06",
+    "jul": "07",
+    "aug": "08",
+    "sep": "09",
+    "sept": "09",
+    "oct": "10",
+    "nov": "11",
+    "dec": "12",
+}
+
 
 def clean_text(text):
-    return re.sub(r"\s+", " ", text or "").strip()
+    text = re.sub(r"\s+", " ", text or "")
+    return text.strip()
 
 
 def parse_date(text):
+    """
+    將常見 Deadline 日期轉成 YYYY-MM-DD。
+    """
+
+    if not text:
+        return ""
+
     text = clean_text(text)
 
-    patterns = [
-        # September 15, 2026
-        r"\b(January|February|March|April|May|June|July|August|September|October|November|December)"
-        r"\s+(\d{1,2})(?:st|nd|rd|th)?[,]?\s*(2026)\b",
+    # 例如：
+    # September 15, 2026
+    # September 15 2026
+    # Sep 15, 2026
+    # Sep 15 2026
+    pattern = re.compile(
+        r"\b"
+        r"(January|February|March|April|May|June|July|August|September|"
+        r"October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|"
+        r"Sep|Sept|Oct|Nov|Dec)"
+        r"\s+"
+        r"(\d{1,2})"
+        r"(?:st|nd|rd|th)?"
+        r"(?:,\s*|\s+)"
+        r"(20\d{2})"
+        r"\b",
+        re.I,
+    )
 
-        # 15 September 2026
-        r"\b(\d{1,2})(?:st|nd|rd|th)?\s+"
-        r"(January|February|March|April|May|June|July|August|September|October|November|December)"
-        r"\s+(2026)\b",
+    match = pattern.search(text)
 
-        # September 15
-        r"\b(January|February|March|April|May|June|July|August|September|October|November|December)"
-        r"\s+(\d{1,2})(?:st|nd|rd|th)?\b",
+    if match:
+        month = MONTHS.get(match.group(1).lower())
+        if not month:
+            month = MONTHS_SHORT.get(match.group(1).lower())
 
-        # 15 IX 2026
-        r"\b(\d{1,2})\s+(I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII)\s*(2026)?\b",
-    ]
-
-    for i, pattern in enumerate(patterns):
-        match = re.search(pattern, text, re.I)
-
-        if not match:
-            continue
-
-        if i == 0:
-            month = match.group(1).lower()
+        if month:
             day = int(match.group(2))
             year = int(match.group(3))
+            return f"{year:04d}-{month}-{day:02d}"
 
-        elif i == 1:
-            day = int(match.group(1))
-            month = match.group(2).lower()
+    # 例如：
+    # 15 September 2026
+    # 15 Sep 2026
+    pattern2 = re.compile(
+        r"\b"
+        r"(\d{1,2})"
+        r"(?:st|nd|rd|th)?"
+        r"\s+"
+        r"(January|February|March|April|May|June|July|August|September|"
+        r"October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|"
+        r"Sep|Sept|Oct|Nov|Dec)"
+        r"\s+"
+        r"(20\d{2})"
+        r"\b",
+        re.I,
+    )
+
+    match = pattern2.search(text)
+
+    if match:
+        day = int(match.group(1))
+        month = MONTHS.get(match.group(2).lower())
+
+        if not month:
+            month = MONTHS_SHORT.get(match.group(2).lower())
+
+        if month:
             year = int(match.group(3))
-
-        elif i == 2:
-            month = match.group(1).lower()
-            day = int(match.group(2))
-            year = 2026
-
-        else:
-            day = int(match.group(1))
-            roman = match.group(2).upper()
-            year = int(match.group(3)) if match.group(3) else 2026
-
-            roman_months = {
-                "I": 1,
-                "II": 2,
-                "III": 3,
-                "IV": 4,
-                "V": 5,
-                "VI": 6,
-                "VII": 7,
-                "VIII": 8,
-                "IX": 9,
-                "X": 10,
-                "XI": 11,
-                "XII": 12,
-            }
-
-            return f"{year:04d}-{roman_months[roman]:02d}-{day:02d}"
-
-            return f"{year:04d}-{MONTHS[month]}-{day:02d}"
-
-
-
-
-def get_title(element):
-    # 優先使用標題元素
-    for tag in element.find_all(["h1", "h2", "h3", "h4"], limit=3):
-        title = clean_text(tag.get_text(" ", strip=True))
-        if title:
-            return title
-
-    # 找連結文字
-    for link in element.find_all("a"):
-        title = clean_text(link.get_text(" ", strip=True))
-        if len(title) >= 5 and title.lower() not in {"more", "read more"}:
-            return title
+            return f"{year:04d}-{month}-{day:02d}"
 
     return ""
 
 
+def extract_deadline(content):
+    """
+    從文章內容找 Deadline。
+    """
+
+    text = clean_text(content)
+
+    # 優先找 Deadline 附近的日期
+    deadline_patterns = [
+        r"Deadline\s*[:\-]?\s*([^.;|]{0,100})",
+        r"Last Deadline\s*[:\-]?\s*([^.;|]{0,100})",
+        r"Submission Deadline\s*[:\-]?\s*([^.;|]{0,100})",
+        r"New submission deadline\s*[:\-]?\s*([^.;|]{0,100})",
+        r"Submission deadline\s*[:\-]?\s*([^.;|]{0,100})",
+    ]
+
+    for pattern in deadline_patterns:
+        match = re.search(pattern, text, re.I)
+
+        if match:
+            date = parse_date(match.group(1))
+
+            if date:
+                return date
+
+    # 如果 Deadline 前後格式比較特殊，再直接全文找日期
+    date = parse_date(text)
+
+    return date
+
+
+def fetch_posts():
+    posts = []
+
+    for page in range(1, 10):
+
+        params = {
+            "per_page": 100,
+            "page": page,
+            "orderby": "date",
+            "order": "desc",
+        }
+
+        response = requests.get(
+            API_URL,
+            params=params,
+            timeout=30,
+            headers={
+                "User-Agent": "Mozilla/5.0"
+            },
+        )
+
+        if response.status_code == 400:
+            break
+
+        response.raise_for_status()
+
+        batch = response.json()
+
+        if not batch:
+            break
+
+        posts.extend(batch)
+
+        if len(batch) < 100:
+            break
+
+    return posts
+
+
 def main():
-    response = requests.get(
-        URL,
-        headers=HEADERS,
-        timeout=30
-    )
-    response.raise_for_status()
 
-    soup = BeautifulSoup(response.text, "html.parser")
+    print("Fetching PosterTerritory posts...")
 
-    # 取得主要內容區域
-    main_area = (
-        soup.find("main")
-        or soup.find("article")
-        or soup.body
-    )
+    posts = fetch_posts()
 
-    if not main_area:
-        raise SystemExit("Unable to locate PosterTerritory content")
+    print(f"Fetched {len(posts)} posts")
 
     items = []
 
-    # 找出所有含有 Deadline 的內容區塊
-    for element in main_area.find_all(["article", "section", "div", "li"]):
+    excluded_titles = {
+        "Poster Competitions",
+        "Design programs and Summer Schools",
+        "Open calls and platforms with no deadline",
+    }
 
-        text = clean_text(element.get_text(" ", strip=True))
+    for post in posts:
 
-        if "deadline" not in text.lower():
-            continue
-
-        # 排除整個分類區塊
-        if len(text) > 1200:
-            continue
-
-        title = get_title(element)
+        title = clean_text(
+            BeautifulSoup(
+                post.get("title", {}).get("rendered", ""),
+                "html.parser"
+            ).get_text(" ", strip=True)
+        )
 
         if not title:
             continue
 
-        if title.lower() in {
-            "poster competitions",
-            "design programs and summer schools",
-            "open calls and platforms with no deadline",
-        }:
+        if title in excluded_titles:
             continue
 
-        deadline = parse_date(text)
+        content_html = post.get("content", {}).get("rendered", "")
+
+        content_text = BeautifulSoup(
+            content_html,
+            "html.parser"
+        ).get_text(" ", strip=True)
+
+        content_text = clean_text(content_text)
+
+        deadline = extract_deadline(content_text)
 
         if not deadline:
             continue
 
-        items.append({
+        link = post.get("link", "")
+
+        item = {
             "title": title,
             "deadline": deadline,
             "resultDate": "",
             "participating": False,
-            "result": "pending"
-        })
+            "result": "pending",
+            "url": link,
+        }
 
-    # 備援：直接從文字節點附近尋找比賽名稱
-    if not items:
-        text = clean_text(main_area.get_text(" ", strip=True))
+        items.append(item)
 
-        chunks = re.split(
-            r"\b(?:More|Read more)\b",
-            text,
-            flags=re.I
-        )
-
-        for chunk in chunks:
-            if "deadline" not in chunk.lower():
-                continue
-
-            deadline = parse_date(chunk)
-
-            if not deadline:
-                continue
-
-            lines = [
-                clean_text(x)
-                for x in re.split(r"\n|•", chunk)
-                if clean_text(x)
-            ]
-
-            title = ""
-
-            for line in lines:
-                lower = line.lower()
-
-                if (
-                    "deadline" not in lower
-                    and len(line) >= 5
-                    and len(line) <= 180
-                ):
-                    title = line
-                    break
-
-            if title:
-                items.append({
-                    "title": title,
-                    "deadline": deadline,
-                    "resultDate": "",
-                    "participating": False,
-                    "result": "pending"
-                })
-
-    # 去除重複
+    # 去除重複標題
     unique = {}
 
     for item in items:
-        key = item["title"].strip().lower()
-
-        if key not in unique:
-            unique[key] = item
+        unique[item["title"]] = item
 
     items = list(unique.values())
+
+    print(f"Parsed {len(items)} competitions")
 
     if not items:
         raise SystemExit(
             "No competitions parsed; refusing to overwrite competitions.json"
         )
 
-    # 讀取舊資料
+    # 保留原本 competitions.json 中的參賽與結果資料
     old = []
 
     if os.path.exists("competitions.json"):
-        with open(
-            "competitions.json",
-            "r",
-            encoding="utf-8"
-        ) as f:
-            old = json.load(f)
+
+        try:
+            with open(
+                "competitions.json",
+                "r",
+                encoding="utf-8"
+            ) as f:
+                old = json.load(f)
+
+        except Exception:
+            old = []
 
     old_map = {
-        item.get("title", "").strip().lower(): item
+        item.get("title"): item
         for item in old
-        if item.get("title")
+        if isinstance(item, dict)
     }
 
-    # 保留使用者自己的資料
     for item in items:
-        old_item = old_map.get(item["title"].strip().lower())
+
+        old_item = old_map.get(item["title"])
 
         if old_item:
+
             item["participating"] = old_item.get(
                 "participating",
                 False
@@ -280,10 +305,7 @@ def main():
 
     # 依截止日期排序
     items.sort(
-        key=lambda x: (
-            x.get("deadline") or "9999-12-31",
-            x.get("title", "")
-        )
+        key=lambda x: x.get("deadline", "")
     )
 
     with open(
@@ -291,6 +313,7 @@ def main():
         "w",
         encoding="utf-8"
     ) as f:
+
         json.dump(
             items,
             f,
