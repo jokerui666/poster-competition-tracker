@@ -107,85 +107,336 @@ SOCIAL_DOMAINS = {
     "x.com", "tiktok.com"
 }
 
+# 這些網域永遠不能被當成比賽官方網站
+BLOCKED_OFFICIAL_DOMAINS = {
+    "posterterritory.com",
+    "www.posterterritory.com",
+    "google.com",
+    "googleusercontent.com",
+    "translate.google.com",
+    "facebook.com",
+    "instagram.com",
+    "behance.net",
+    "pinterest.com",
+    "linkedin.com",
+    "youtube.com",
+    "youtu.be",
+    "twitter.com",
+    "x.com",
+    "tiktok.com",
+}
+
 
 def hostname(url):
     try:
-        return (urlparse(url).hostname or "").lower().removeprefix("www.")
+        return (
+            urlparse(url)
+            .hostname
+            or ""
+        ).lower().removeprefix("www.")
     except Exception:
         return ""
 
 
 def is_social(url):
     host = hostname(url)
+
     return any(
-        host == domain or host.endswith("." + domain)
+        host == domain
+        or host.endswith("." + domain)
         for domain in SOCIAL_DOMAINS
     )
 
 
+def is_blocked_official_domain(url):
+    host = hostname(url)
+
+    if not host:
+        return True
+
+    return (
+        host in BLOCKED_OFFICIAL_DOMAINS
+        or any(
+            host.endswith("." + domain)
+            for domain in BLOCKED_OFFICIAL_DOMAINS
+        )
+    )
+
+
+def looks_like_real_webpage(url):
+    """
+    排除 mailto、javascript、圖片、PDF、下載檔與社群網址。
+    """
+    lowered = url.lower()
+
+    if lowered.startswith(
+        (
+            "mailto:",
+            "javascript:",
+            "tel:",
+            "data:",
+        )
+    ):
+        return False
+
+    if re.search(
+        r"\.(pdf|jpg|jpeg|png|gif|webp|svg|zip|docx?|xlsx?)($|\?)",
+        lowered
+    ):
+        return False
+
+    return True
+
+
+def anchor_context(anchor):
+    """
+    取得連結附近的文字。
+    官方網站連結通常會出現在：
+    Website / Official Website / Enter / Apply / Submission
+    等文字附近。
+    """
+    parts = []
+
+    text = clean_text(
+        anchor.get_text(
+            " ",
+            strip=True
+        )
+    )
+
+    if text:
+        parts.append(text)
+
+    parent = anchor.parent
+
+    if parent:
+        parent_text = clean_text(
+            parent.get_text(
+                " ",
+                strip=True
+            )
+        )
+
+        if parent_text:
+            parts.append(parent_text)
+
+    previous = anchor.find_previous(
+        ["p", "li", "div", "td"]
+    )
+
+    if previous:
+        previous_text = clean_text(
+            previous.get_text(
+                " ",
+                strip=True
+            )
+        )
+
+        if previous_text:
+            parts.append(previous_text)
+
+    return " ".join(parts).lower()
+
+
 def find_official_url(article_url):
     """
-    從 PosterTerritory 文章內的外部連結尋找可能的主辦/官方網站。
-    不把 PosterTerritory 或社群網站當作官方競賽網址。
-    找不到時回傳空字串，不亂猜。
+    從「該場 PosterTerritory 文章」尋找該場比賽自己的官方網站。
+
+    重要原則：
+    1. 永遠排除 PosterTerritory。
+    2. 永遠排除社群網站。
+    3. 優先選擇連結文字/附近文字明確指出
+       Official Website / Website / Apply / Enter 等的網址。
+    4. 如果頁面只有一般外部連結，寧可回傳空字串，
+       也不要把共同導覽網址誤判成官方網站。
     """
     try:
         html = download(article_url)
-        soup = BeautifulSoup(html, "html.parser")
+        soup = BeautifulSoup(
+            html,
+            "html.parser"
+        )
 
         candidates = []
 
-        for a in soup.find_all("a", href=True):
-            href = normalize_url(a.get("href", ""))
+        strong_words = (
+            "official website",
+            "official site",
+            "visit website",
+            "visit the website",
+            "website",
+            "web site",
+            "visit site",
+            "apply",
+            "enter now",
+            "enter competition",
+            "submission",
+            "submit",
+            "call for entries",
+            "register",
+        )
+
+        weak_words = (
+            "competition",
+            "contest",
+            "poster",
+            "biennale",
+            "biennial",
+            "festival",
+            "award",
+            "design",
+            "graphic",
+        )
+
+        for anchor in soup.find_all(
+            "a",
+            href=True
+        ):
+
+            raw_href = clean_text(
+                anchor.get(
+                    "href",
+                    ""
+                )
+            )
+
+            if not raw_href:
+                continue
+
+            # 不接受 javascript / mailto 等
+            if not looks_like_real_webpage(
+                raw_href
+            ):
+                continue
+
+            href = normalize_url(
+                raw_href
+            )
+
             if not href:
                 continue
 
             host = hostname(href)
 
-            if not host:
-                continue
-
+            # 絕不使用 PosterTerritory
             if same_domain(href):
                 continue
 
+            # 絕不使用社群
             if is_social(href):
                 continue
 
+            # 絕不使用明確封鎖網域
+            if is_blocked_official_domain(
+                href
+            ):
+                continue
+
+            context = anchor_context(
+                anchor
+            )
+
             label = clean_text(
-                a.get_text(" ", strip=True)
+                anchor.get_text(
+                    " ",
+                    strip=True
+                )
             ).lower()
 
             score = 0
 
-            if any(word in label for word in [
-                "official", "website", "web site", "visit",
-                "apply", "enter", "submission", "competition",
-                "contest", "call for entries", "register"
-            ]):
+            # ----------------------------------------------
+            # 最重要：連結文字
+            # ----------------------------------------------
+
+            if any(
+                word in label
+                for word in strong_words
+            ):
+                score += 100
+
+            # ----------------------------------------------
+            # 連結附近的上下文
+            # ----------------------------------------------
+
+            if any(
+                word in context
+                for word in strong_words
+            ):
+                score += 50
+
+            if any(
+                word in context
+                for word in weak_words
+            ):
                 score += 10
 
-            if any(word in host for word in [
-                "award", "competition", "biennale", "biennial",
-                "festival", "poster", "design", "graphic"
-            ]):
-                score += 3
+            # ----------------------------------------------
+            # URL / domain 本身
+            # ----------------------------------------------
 
-            candidates.append((score, href))
+            if any(
+                word in host
+                for word in weak_words
+            ):
+                score += 5
 
-        if candidates:
-            candidates.sort(
-                key=lambda item: item[0],
-                reverse=True
+            # ----------------------------------------------
+            # 排除明顯不是官方網站的常見連結
+            # ----------------------------------------------
+
+            if (
+                "posterterritory"
+                in host
+            ):
+                continue
+
+            # 沒有任何官方網站訊號的外部網址，
+            # 不直接採用。
+            if score < 50:
+                continue
+
+            candidates.append(
+                {
+                    "score": score,
+                    "url": href,
+                    "host": host,
+                    "label": label,
+                }
             )
-            return candidates[0][1]
+
+        if not candidates:
+            print(
+                "Official website: NOT FOUND"
+            )
+            return ""
+
+        # 分數最高優先；同分時網址排序保持穩定
+        candidates.sort(
+            key=lambda item: (
+                -item["score"],
+                item["host"],
+                item["url"],
+            )
+        )
+
+        best = candidates[0]
+
+        print(
+            "Official website:",
+            best["url"]
+        )
+
+        return best["url"]
 
     except Exception as error:
+
         print(
             "Official website lookup failed:",
             error
         )
 
-    return ""
+        return ""
 
 
 # ============================================================
