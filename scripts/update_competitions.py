@@ -2,50 +2,82 @@ import json
 import os
 import re
 import requests
+from datetime import date
 from bs4 import BeautifulSoup
 
-API_URL = "https://www.posterterritory.com/wp-json/wp/v2/posts"
+
+URL = "https://www.posterterritory.com/poster-competitions/"
+
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/131.0 Safari/537.36"
+    )
+}
+
+TODAY = date.today()
+CURRENT_YEAR = TODAY.year
 
 MONTHS = {
-    "january": "01",
-    "february": "02",
-    "march": "03",
-    "april": "04",
-    "may": "05",
-    "june": "06",
-    "july": "07",
-    "august": "08",
-    "september": "09",
-    "october": "10",
-    "november": "11",
-    "december": "12",
+    "january": 1,
+    "february": 2,
+    "march": 3,
+    "april": 4,
+    "may": 5,
+    "june": 6,
+    "july": 7,
+    "august": 8,
+    "september": 9,
+    "october": 10,
+    "november": 11,
+    "december": 12,
 }
 
-MONTHS_SHORT = {
-    "jan": "01",
-    "feb": "02",
-    "mar": "03",
-    "apr": "04",
-    "may": "05",
-    "jun": "06",
-    "jul": "07",
-    "aug": "08",
-    "sep": "09",
-    "sept": "09",
-    "oct": "10",
-    "nov": "11",
-    "dec": "12",
+ROMAN_MONTHS = {
+    "I": 1,
+    "II": 2,
+    "III": 3,
+    "IV": 4,
+    "V": 5,
+    "VI": 6,
+    "VII": 7,
+    "VIII": 8,
+    "IX": 9,
+    "X": 10,
+    "XI": 11,
+    "XII": 12,
 }
 
+
+# ---------------------------------------------------------
+# 基本文字清理
+# ---------------------------------------------------------
 
 def clean_text(text):
-    text = re.sub(r"\s+", " ", text or "")
+    if not text:
+        return ""
+
+    text = text.replace("\xa0", " ")
+    text = re.sub(r"\s+", " ", text)
     return text.strip()
 
 
+# ---------------------------------------------------------
+# 解析日期
+# ---------------------------------------------------------
+
 def parse_date(text):
     """
-    將常見 Deadline 日期轉成 YYYY-MM-DD。
+    只解析明確的 deadline 日期。
+
+    支援：
+    August 31, 2026
+    31 August 2026
+    September 15, 2026
+    15 September 2026
+    15 IX 2026
+    15 IX 2026
     """
 
     if not text:
@@ -53,51 +85,52 @@ def parse_date(text):
 
     text = clean_text(text)
 
+    # ---------------------------------------------
+    # Month Day, Year
     # 例如：
-    # September 15, 2026
+    # August 31, 2026
     # September 15 2026
-    # Sep 15, 2026
-    # Sep 15 2026
-    pattern = re.compile(
-        r"\b"
-        r"(January|February|March|April|May|June|July|August|September|"
-        r"October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|"
-        r"Sep|Sept|Oct|Nov|Dec)"
-        r"\s+"
-        r"(\d{1,2})"
-        r"(?:st|nd|rd|th)?"
+    # ---------------------------------------------
+
+    pattern1 = re.compile(
+        r"\b("
+        r"January|February|March|April|May|June|July|August|"
+        r"September|October|November|December"
+        r")\s+"
+        r"(\d{1,2})(?:st|nd|rd|th)?"
         r"(?:,\s*|\s+)"
-        r"(20\d{2})"
-        r"\b",
+        r"(\d{4})\b",
         re.I,
     )
 
-    match = pattern.search(text)
+    match = pattern1.search(text)
 
     if match:
-        month = MONTHS.get(match.group(1).lower())
-        if not month:
-            month = MONTHS_SHORT.get(match.group(1).lower())
+        month_name = match.group(1).lower()
+        day = int(match.group(2))
+        year = int(match.group(3))
 
-        if month:
-            day = int(match.group(2))
-            year = int(match.group(3))
-            return f"{year:04d}-{month}-{day:02d}"
+        try:
+            d = date(year, MONTHS[month_name], day)
+            return d.isoformat()
+        except ValueError:
+            return ""
 
+    # ---------------------------------------------
+    # Day Month Year
     # 例如：
+    # 31 August 2026
     # 15 September 2026
-    # 15 Sep 2026
+    # ---------------------------------------------
+
     pattern2 = re.compile(
         r"\b"
-        r"(\d{1,2})"
-        r"(?:st|nd|rd|th)?"
-        r"\s+"
-        r"(January|February|March|April|May|June|July|August|September|"
-        r"October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|"
-        r"Sep|Sept|Oct|Nov|Dec)"
-        r"\s+"
-        r"(20\d{2})"
-        r"\b",
+        r"(\d{1,2})(?:st|nd|rd|th)?"
+        r"\s+("
+        r"January|February|March|April|May|June|July|August|"
+        r"September|October|November|December"
+        r")"
+        r"(?:\s*,?\s*)(\d{4})\b",
         re.I,
     )
 
@@ -105,162 +138,367 @@ def parse_date(text):
 
     if match:
         day = int(match.group(1))
-        month = MONTHS.get(match.group(2).lower())
+        month_name = match.group(2).lower()
+        year = int(match.group(3))
 
-        if not month:
-            month = MONTHS_SHORT.get(match.group(2).lower())
+        try:
+            d = date(year, MONTHS[month_name], day)
+            return d.isoformat()
+        except ValueError:
+            return ""
 
-        if month:
-            year = int(match.group(3))
-            return f"{year:04d}-{month}-{day:02d}"
+    # ---------------------------------------------
+    # Roman numeral month
+    #
+    # 15 IX 2026
+    # 1 XI 2026
+    # ---------------------------------------------
+
+    pattern3 = re.compile(
+        r"\b(\d{1,2})\s+"
+        r"(I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII)"
+        r"\s+(\d{4})\b",
+        re.I,
+    )
+
+    match = pattern3.search(text)
+
+    if match:
+        day = int(match.group(1))
+        roman = match.group(2).upper()
+        year = int(match.group(3))
+
+        try:
+            d = date(year, ROMAN_MONTHS[roman], day)
+            return d.isoformat()
+        except ValueError:
+            return ""
 
     return ""
 
 
-def extract_deadline(content):
+# ---------------------------------------------------------
+# 取得 deadline
+# ---------------------------------------------------------
+
+def extract_deadline(text):
     """
-    從文章內容找 Deadline。
+    只在 Deadline / Last Deadline / Submission Deadline
+    附近找日期。
+
+    不會直接掃描整篇文章的所有日期。
     """
 
-    text = clean_text(content)
+    if not text:
+        return ""
 
-    # 優先找 Deadline 附近的日期
-    deadline_patterns = [
-        r"Deadline\s*[:\-]?\s*([^.;|]{0,100})",
-        r"Last Deadline\s*[:\-]?\s*([^.;|]{0,100})",
-        r"Submission Deadline\s*[:\-]?\s*([^.;|]{0,100})",
-        r"New submission deadline\s*[:\-]?\s*([^.;|]{0,100})",
-        r"Submission deadline\s*[:\-]?\s*([^.;|]{0,100})",
-    ]
+    text = clean_text(text)
 
-    for pattern in deadline_patterns:
-        match = re.search(pattern, text, re.I)
+    # -----------------------------------------------------
+    # 先找 Deadline 後面的文字
+    # -----------------------------------------------------
 
-        if match:
-            date = parse_date(match.group(1))
+    deadline_pattern = re.compile(
+        r"(?:"
+        r"deadline|"
+        r"last\s+deadline|"
+        r"submission\s+deadline|"
+        r"submission\s+date|"
+        r"entries\s+close|"
+        r"closing\s+date"
+        r")"
+        r"\s*[:\-]?\s*"
+        r"(.{0,100})",
+        re.I,
+    )
 
-            if date:
-                return date
+    matches = deadline_pattern.findall(text)
 
-    # 如果 Deadline 前後格式比較特殊，再直接全文找日期
-    date = parse_date(text)
+    for chunk in matches:
+        chunk = clean_text(chunk)
 
-    return date
+        parsed = parse_date(chunk)
 
+        if parsed:
+            return parsed
 
-def fetch_posts():
-    posts = []
+        # 有時候 deadline 後面會出現：
+        # 15 IX 2026
+        # July 31, 2026
+        # 等格式
+        parsed = parse_date(chunk[:100])
 
-    for page in range(1, 10):
+        if parsed:
+            return parsed
 
-        params = {
-            "per_page": 100,
-            "page": page,
-            "orderby": "date",
-            "order": "desc",
-        }
-
-        response = requests.get(
-            API_URL,
-            params=params,
-            timeout=30,
-            headers={
-                "User-Agent": "Mozilla/5.0"
-            },
-        )
-
-        if response.status_code == 400:
-            break
-
-        response.raise_for_status()
-
-        batch = response.json()
-
-        if not batch:
-            break
-
-        posts.extend(batch)
-
-        if len(batch) < 100:
-            break
-
-    return posts
+    return ""
 
 
-def main():
+# ---------------------------------------------------------
+# 取得標題
+# ---------------------------------------------------------
 
-    print("Fetching PosterTerritory posts...")
+def get_title(element):
+    """
+    優先使用 h1/h2/h3/h4。
+    """
 
-    posts = fetch_posts()
+    for tag in element.find_all(
+        ["h1", "h2", "h3", "h4"],
+        limit=5
+    ):
+        title = clean_text(tag.get_text(" ", strip=True))
 
-    print(f"Fetched {len(posts)} posts")
+        if title:
+            return title
 
-    items = []
+    # 如果沒有標題元素，嘗試連結文字
+    for link in element.find_all("a"):
+        title = clean_text(link.get_text(" ", strip=True))
 
+        if title and len(title) >= 5:
+            return title
+
+    return ""
+
+
+# ---------------------------------------------------------
+# 取得連結
+# ---------------------------------------------------------
+
+def get_url(element):
+    for link in element.find_all("a", href=True):
+        href = link.get("href", "").strip()
+
+        if href.startswith("http"):
+            if "posterterritory.com" in href:
+                return href
+
+    return ""
+
+
+# ---------------------------------------------------------
+# 判斷是否是「真正的比賽」
+# ---------------------------------------------------------
+
+def is_valid_competition(title, text):
+    title_lower = title.lower()
+    text_lower = text.lower()
+
+    # 排除網站的分類標題
     excluded_titles = {
-        "Poster Competitions",
-        "Design programs and Summer Schools",
-        "Open calls and platforms with no deadline",
+        "poster competitions",
+        "design programs and summer schools",
+        "open calls and platforms with no deadline",
     }
 
-    for post in posts:
+    if title_lower in excluded_titles:
+        return False
+
+    # 明確排除教育課程
+    education_words = [
+        "summer school",
+        "design program",
+        "design programmes",
+        "residency program",
+    ]
+
+    for word in education_words:
+        if word in title_lower:
+            return False
+
+    # 必須具有 deadline
+    if "deadline" not in text_lower:
+        return False
+
+    return True
+
+
+# ---------------------------------------------------------
+# 找出比賽卡片 / 文章區塊
+# ---------------------------------------------------------
+
+def get_competition_elements(soup):
+    """
+    PosterTerritory 的首頁結構可能改變，
+    因此不依賴單一 class。
+
+    先尋找包含 Deadline 的標題元素，
+    再向上尋找合理的文章容器。
+    """
+
+    elements = []
+
+    # -----------------------------------------------------
+    # 方法 1：尋找 article
+    # -----------------------------------------------------
+
+    for article in soup.find_all("article"):
+        text = clean_text(article.get_text(" ", strip=True))
+
+        if "deadline" in text.lower():
+            elements.append(article)
+
+    if elements:
+        return elements
+
+    # -----------------------------------------------------
+    # 方法 2：尋找 h2/h3/h4，
+    # 往父層尋找包含 deadline 的容器
+    # -----------------------------------------------------
+
+    seen = set()
+
+    for heading in soup.find_all(["h2", "h3", "h4"]):
 
         title = clean_text(
-            BeautifulSoup(
-                post.get("title", {}).get("rendered", ""),
-                "html.parser"
-            ).get_text(" ", strip=True)
+            heading.get_text(" ", strip=True)
         )
 
         if not title:
             continue
 
-        if title in excluded_titles:
+        parent = heading.parent
+
+        for _ in range(5):
+
+            if not parent:
+                break
+
+            text = clean_text(
+                parent.get_text(" ", strip=True)
+            )
+
+            if "deadline" in text.lower():
+
+                key = id(parent)
+
+                if key not in seen:
+                    seen.add(key)
+                    elements.append(parent)
+
+                break
+
+            parent = parent.parent
+
+    return elements
+
+
+# ---------------------------------------------------------
+# 主程式
+# ---------------------------------------------------------
+
+def main():
+
+    print("Downloading PosterTerritory...")
+
+    response = requests.get(
+        URL,
+        timeout=30,
+        headers=HEADERS,
+    )
+
+    response.raise_for_status()
+
+    soup = BeautifulSoup(
+        response.text,
+        "html.parser"
+    )
+
+    elements = get_competition_elements(soup)
+
+    print("Candidate elements:", len(elements))
+
+    items = []
+
+    seen_titles = set()
+
+    for element in elements:
+
+        title = get_title(element)
+
+        if not title:
             continue
 
-        content_html = post.get("content", {}).get("rendered", "")
+        text = clean_text(
+            element.get_text(" ", strip=True)
+        )
 
-        content_text = BeautifulSoup(
-            content_html,
-            "html.parser"
-        ).get_text(" ", strip=True)
+        if not is_valid_competition(title, text):
+            continue
 
-        content_text = clean_text(content_text)
-
-        deadline = extract_deadline(content_text)
+        deadline = extract_deadline(text)
 
         if not deadline:
+            print("Skipping - no deadline:", title)
             continue
 
-        link = post.get("link", "")
+        # -------------------------------------------------
+        # 只保留今年及未來的 deadline
+        #
+        # 2026-08-31 之後
+        # 以及未來年份
+        # -------------------------------------------------
 
-        item = {
-            "title": title,
-            "deadline": deadline,
-            "resultDate": "",
-            "participating": False,
-            "result": "pending",
-            "url": link,
-        }
+        try:
+            deadline_date = date.fromisoformat(deadline)
+        except ValueError:
+            continue
 
-        items.append(item)
+        if deadline_date < TODAY:
+            print(
+                "Skipping expired:",
+                title,
+                deadline
+            )
+            continue
 
-    # 去除重複標題
-    unique = {}
+        # -------------------------------------------------
+        # 去除重複
+        # -------------------------------------------------
 
-    for item in items:
-        unique[item["title"]] = item
+        title_key = re.sub(
+            r"\s+",
+            " ",
+            title.lower()
+        ).strip()
 
-    items = list(unique.values())
+        if title_key in seen_titles:
+            continue
 
-    print(f"Parsed {len(items)} competitions")
+        seen_titles.add(title_key)
+
+        url = get_url(element)
+
+        if not url:
+            continue
+
+        items.append(
+            {
+                "title": title,
+                "deadline": deadline,
+                "resultDate": "",
+                "participating": False,
+                "result": "pending",
+                "url": url,
+            }
+        )
+
+    # -----------------------------------------------------
+    # 如果完全抓不到資料
+    # 絕對不能覆蓋現有 competitions.json
+    # -----------------------------------------------------
 
     if not items:
         raise SystemExit(
-            "No competitions parsed; refusing to overwrite competitions.json"
+            "No valid future competitions parsed; "
+            "refusing to overwrite competitions.json"
         )
 
-    # 保留原本 competitions.json 中的參賽與結果資料
+    # -----------------------------------------------------
+    # 讀取舊資料
+    # -----------------------------------------------------
+
     old = []
 
     if os.path.exists("competitions.json"):
@@ -276,15 +514,24 @@ def main():
         except Exception:
             old = []
 
-    old_map = {
-        item.get("title"): item
-        for item in old
-        if isinstance(item, dict)
-    }
+    old_map = {}
+
+    for item in old:
+
+        title = item.get("title", "").strip()
+
+        if title:
+            old_map[title.lower()] = item
+
+    # -----------------------------------------------------
+    # 保留使用者原本的參賽狀態
+    # -----------------------------------------------------
 
     for item in items:
 
-        old_item = old_map.get(item["title"])
+        old_item = old_map.get(
+            item["title"].lower()
+        )
 
         if old_item:
 
@@ -303,10 +550,20 @@ def main():
                 ""
             )
 
-    # 依截止日期排序
+    # -----------------------------------------------------
+    # 排序
+    # -----------------------------------------------------
+
     items.sort(
-        key=lambda x: x.get("deadline", "")
+        key=lambda x: (
+            x["deadline"],
+            x["title"].lower()
+        )
     )
+
+    # -----------------------------------------------------
+    # 寫入 JSON
+    # -----------------------------------------------------
 
     with open(
         "competitions.json",
@@ -321,9 +578,29 @@ def main():
             indent=2
         )
 
+        f.write("\n")
+
     print(
-        f"Updated {len(items)} competitions"
+        "Updated",
+        len(items),
+        "future competitions"
     )
+
+    # -----------------------------------------------------
+    # 顯示前幾筆，方便 GitHub Actions log 檢查
+    # -----------------------------------------------------
+
+    print("")
+    print("First competitions:")
+
+    for item in items[:10]:
+
+        print(
+            "-",
+            item["title"],
+            "|",
+            item["deadline"]
+        )
 
 
 if __name__ == "__main__":
