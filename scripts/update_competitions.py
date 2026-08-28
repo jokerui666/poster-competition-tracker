@@ -98,7 +98,7 @@ def parse_date(text):
 
             return f"{year:04d}-{roman_months[roman]:02d}-{day:02d}"
 
-return f"{year:04d}-{MONTHS[month]}-{day:02d}"
+            return f"{year:04d}-{MONTHS[month]}-{day:02d}"
 
 
 
