@@ -2,258 +2,210 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 
 <title>JHENG CHANG CHEN — Poster Competition Tracker</title>
 
 <style>
-* {
-  box-sizing: border-box;
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  background:#fff;
+  color:#111;
+  font-family:Arial,"Noto Sans TC",sans-serif
 }
 
-body {
-  margin: 0;
-  background: #fff;
-  color: #111;
-  font-family: Arial, "Noto Sans TC", sans-serif;
+.wrap{
+  max-width:1120px;
+  margin:auto;
+  padding:28px 18px 60px
 }
 
-.wrap {
-  max-width: 1120px;
-  margin: auto;
-  padding: 28px 18px 60px;
+header{
+  border-bottom:3px solid #111;
+  padding-bottom:14px;
+  margin-bottom:12px
 }
 
-header {
-  border-bottom: 3px solid #111;
-  padding-bottom: 14px;
-  margin-bottom: 12px;
+h1{
+  font-size:clamp(28px,5vw,48px);
+  margin:0
 }
 
-h1 {
-  font-size: clamp(28px, 5vw, 48px);
-  margin: 0;
-  letter-spacing: -1px;
+.sub{
+  color:#666;
+  margin-top:5px
 }
 
-.sub {
-  color: #666;
-  margin-top: 5px;
-  font-size: 14px;
+.stats{
+  display:flex;
+  gap:18px;
+  flex-wrap:wrap;
+  margin:18px 0;
+  font-size:14px
 }
 
-.stats {
-  display: flex;
-  gap: 18px;
-  flex-wrap: wrap;
-  margin: 18px 0;
-  font-size: 14px;
+.stats b{
+  font-size:18px
 }
 
-.stats b {
-  font-size: 18px;
+.controls{
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap;
+  margin:12px 0 16px
 }
 
-.controls {
-  display: flex;
-  gap: 7px;
-  flex-wrap: wrap;
-  margin: 12px 0 16px;
+button{
+  border:1px solid #bbb;
+  background:#fff;
+  border-radius:8px;
+  padding:9px 12px;
+  font-size:13px;
+  cursor:pointer
 }
 
-button {
-  border: 1px solid #bbb;
-  background: #fff;
-  border-radius: 8px;
-  padding: 9px 12px;
-  font-size: 13px;
-  cursor: pointer;
+button.active{
+  background:#111;
+  color:#fff;
+  border-color:#111
 }
 
-button:hover {
-  background: #f5f5f5;
+.update{
+  margin-left:auto
 }
 
-button.active {
-  background: #111;
-  color: #fff;
-  border-color: #111;
+.table{
+  border-top:2px solid #111
 }
 
-.update {
-  margin-left: auto;
-}
-
-.table {
-  border-top: 2px solid #111;
-}
-
-.row {
-  display: grid;
+.row{
+  display:grid;
   grid-template-columns:
     46px
-    minmax(260px, 1fr)
+    minmax(260px,1fr)
     110px
     135px
     165px;
-  gap: 12px;
-  align-items: center;
-  padding: 14px 5px;
-  border-bottom: 1px solid #ddd;
+
+  gap:12px;
+  align-items:center;
+  padding:14px 5px;
+  border-bottom:1px solid #ddd
 }
 
-.head {
-  background: #f4f4f4;
-  color: #666;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 9px 5px;
+.head{
+  background:#f4f4f4;
+  color:#666;
+  font-size:11px;
+  font-weight:700;
+  padding:9px 5px
 }
 
-.title {
-  font-weight: 700;
-  font-size: 14px;
-  line-height: 1.35;
+.title{
+  font-weight:700;
+  font-size:14px;
+  line-height:1.35
 }
 
 .deadline,
 .resultDate,
-.result {
-  font-size: 12px;
-  white-space: nowrap;
+.result{
+  font-size:12px;
+  white-space:nowrap
 }
 
-.result {
-  font-weight: 700;
+.result{
+  font-weight:700
 }
 
-.check {
-  width: 22px;
-  height: 22px;
-  accent-color: #111;
-  cursor: pointer;
+.check{
+  width:22px;
+  height:22px;
+  accent-color:#111;
+  cursor:pointer
 }
 
-.resultBtn {
-  width: 100%;
-  text-align: left;
+.resultBtn{
+  width:100%;
+  text-align:left
 }
 
-.pending {
-  color: #777;
+.pending{
+  color:#777
 }
 
-.green {
-  color: #16833b;
+.green{
+  color:#16833b
 }
 
-.red {
-  color: #c62828;
+.red{
+  color:#c62828
 }
 
-.gold {
-  color: #a56b00;
+.gold{
+  color:#a56b00
 }
 
-.blue {
-  color: #2457a6;
+.blue{
+  color:#2457a6
 }
 
-.note {
-  font-size: 12px;
-  color: #777;
-  margin-top: 10px;
-  line-height: 1.5;
+.note{
+  font-size:12px;
+  color:#777;
+  margin-top:10px;
+  line-height:1.5
 }
 
-.status {
-  font-size: 12px;
-  color: #666;
-  margin: 8px 0;
+.status{
+  font-size:12px;
+  color:#666;
+  margin:8px 0
 }
 
-.ok {
-  color: #16833b;
+.ok{
+  color:#16833b
 }
 
-.warn {
-  color: #a56b00;
+.warn{
+  color:#a56b00
 }
 
-.error {
-  color: #c62828;
+dialog{
+  border:0;
+  border-radius:12px;
+  padding:20px;
+  max-width:420px;
+  width:calc(100% - 30px);
+  box-shadow:0 10px 40px #0003
 }
 
-.empty {
-  padding: 35px 10px;
-  text-align: center;
-  color: #777;
-  font-size: 14px;
+dialog::backdrop{
+  background:#0005
 }
 
-dialog {
-  border: 0;
-  border-radius: 12px;
-  padding: 20px;
-  max-width: 420px;
-  width: calc(100% - 30px);
-  box-shadow: 0 10px 40px #0003;
+dialog button{
+  margin-top:6px
 }
 
-dialog::backdrop {
-  background: #0005;
+.close{
+  float:right
 }
 
-dialog button {
-  margin-top: 6px;
-}
+@media(max-width:760px){
 
-.close {
-  float: right;
-  padding: 5px 9px;
-}
-
-@media (max-width: 760px) {
-
-  .wrap {
-    padding: 20px 12px 40px;
-  }
-
-  h1 {
-    font-size: 32px;
-  }
-
-  .update {
-    margin-left: 0;
-  }
-
-  .row {
+  .row{
     grid-template-columns:
       40px
-      minmax(180px, 1fr)
+      minmax(180px,1fr)
       92px
-      125px;
+      125px
   }
 
-  .statuscol {
-    display: none;
-  }
-
-  .head {
-    grid-template-columns:
-      40px
-      minmax(180px, 1fr)
-      92px
-      125px;
-  }
-
-  .title {
-    font-size: 13px;
-  }
-
-  .deadline,
-  .resultDate {
-    font-size: 11px;
+  .statuscol{
+    display:none
   }
 }
 </style>
@@ -268,12 +220,31 @@ dialog button {
   <div class="sub">2026 POSTER COMPETITION TRACKER</div>
 </header>
 
+
 <div class="stats">
-  <span>已參加 <b id="joinedCount">0</b></span>
-  <span>追蹤中 <b id="trackingCount">0</b></span>
-  <span>入選 <b id="selectedCount">0</b></span>
-  <span>得獎 <b id="winnerCount">0</b></span>
+
+  <span>
+    已參加
+    <b id="joinedCount">0</b>
+  </span>
+
+  <span>
+    追蹤中
+    <b id="trackingCount">0</b>
+  </span>
+
+  <span>
+    入選
+    <b id="selectedCount">0</b>
+  </span>
+
+  <span>
+    得獎
+    <b id="winnerCount">0</b>
+  </span>
+
 </div>
+
 
 <div class="controls">
 
@@ -299,7 +270,9 @@ dialog button {
 
 </div>
 
+
 <div id="status" class="status"></div>
+
 
 <div class="table">
 
@@ -313,7 +286,9 @@ dialog button {
 
     <div>RESULT DATE</div>
 
-    <div class="statuscol">我的結果</div>
+    <div class="statuscol">
+      我的結果
+    </div>
 
   </div>
 
@@ -321,17 +296,23 @@ dialog button {
 
 </div>
 
+
 <div class="note">
-  「↻ 更新比賽資料」會開啟 GitHub Actions，
-  請手動執行一次更新。更新完成後重新整理本頁即可。
+  「↻ 更新比賽資料」會提醒你到 GitHub Actions
+  執行一次更新；網站本身不會連線 PosterTerritory。
+  Action 更新完成並部署後，本頁會自動偵測新的
+  competitions.json 並更新畫面。
   你的參加勾選與結果會保存在瀏覽器。
 </div>
 
 </main>
 
+
 <dialog id="dlg">
 
-  <button class="close" id="close">×</button>
+  <button class="close" id="close">
+    ×
+  </button>
 
   <h3>修改結果</h3>
 
@@ -361,336 +342,381 @@ dialog button {
 
 </dialog>
 
+
 <script>
 
-const STORAGE_KEY = "jheng-poster-v5";
+const KEY = 'jheng-poster-v4';
+
+/*
+  前端只讀取 competitions.json
+  不會直接連線 PosterTerritory
+*/
 
 let data = [];
-let filter = "all";
+
+let filter = 'all';
+
 let editing = null;
 
 
-/* =========================
-   讀取 competitions.json
-========================= */
+/* ================================
+   讀取最新 competitions.json
+   ================================ */
 
-async function load() {
+async function load(){
 
-  const status = document.getElementById("status");
-
-  status.innerHTML =
-    '<span>● 正在讀取最新比賽資料...</span>';
-
-  try {
+  try{
 
     const response = await fetch(
-      "competitions.json?cache=" + Date.now(),
+      'competitions.json?t=' + Date.now(),
       {
-        cache: "no-store"
+        cache:'no-store'
       }
     );
 
-    if (!response.ok) {
-      throw new Error("HTTP " + response.status);
+    if(!response.ok){
+      throw new Error(
+        'HTTP ' + response.status
+      );
     }
 
-    const fresh = await response.json();
+    const fresh =
+      await response.json();
 
-    if (!Array.isArray(fresh)) {
-      throw new Error("competitions.json 格式錯誤");
+    if(!Array.isArray(fresh)){
+      throw new Error(
+        'competitions.json 格式錯誤'
+      );
     }
+
+
+    /*
+      讀取瀏覽器原本保存的
+      參加狀態與結果
+    */
 
     const old =
       JSON.parse(
-        localStorage.getItem(STORAGE_KEY) || "{}"
+        localStorage.getItem(KEY) || '{}'
       );
 
-    data = fresh.map(item => {
 
-      const saved = old[item.title] || {};
+    /*
+      最新 JSON + 原本使用者資料
+    */
+
+    data = fresh.map(x => {
+
+      const saved =
+        old[x.title] || {};
 
       return {
-        ...item,
+
+        ...x,
 
         participating:
-          typeof saved.participating === "boolean"
+          typeof saved.participating === 'boolean'
             ? saved.participating
-            : !!item.participating,
+            : !!x.participating,
 
         result:
           saved.result ||
-          item.result ||
-          "pending",
+          x.result ||
+          'pending',
 
         resultDate:
           saved.resultDate ||
-          item.resultDate ||
-          ""
+          x.resultDate ||
+          ''
+
       };
 
     });
 
+
     render();
 
-    status.innerHTML =
-      '<span class="ok">● 已載入最新資料</span>';
 
-  } catch (error) {
+    /*
+      顯示目前資料數量與更新時間
+    */
 
-    console.error(error);
+    const now =
+      new Date();
 
-    status.innerHTML =
-      '<span class="error">● 無法讀取 competitions.json</span>';
+    const time =
+      now.toLocaleTimeString(
+        'zh-TW',
+        {
+          hour:'2-digit',
+          minute:'2-digit'
+        }
+      );
 
-    document.getElementById("list").innerHTML =
-      '<div class="empty">目前無法讀取比賽資料，請重新整理頁面。</div>';
+
+    document.getElementById(
+      'status'
+    ).innerHTML =
+      '<span class="ok">● 已載入最新資料</span>' +
+      '　' +
+      data.length +
+      ' 場比賽' +
+      '　｜最後更新 ' +
+      time;
+
+
+  }catch(error){
+
+    console.error(
+      'Competition data error:',
+      error
+    );
+
+
+    document.getElementById(
+      'status'
+    ).innerHTML =
+      '<span class="warn">' +
+      '目前無法讀取最新資料，請稍後重新整理。' +
+      '</span>';
+
   }
+
 }
 
 
-/* =========================
-   儲存使用者資料
-========================= */
+/* ================================
+   保存使用者資料
+   ================================ */
 
-function persist() {
+function persist(){
 
   const saved = {};
 
-  data.forEach(item => {
+  data.forEach(x => {
 
-    saved[item.title] = {
+    saved[x.title] = {
 
       participating:
-        !!item.participating,
+        x.participating,
 
       result:
-        item.result || "pending",
+        x.result,
 
       resultDate:
-        item.resultDate || ""
+        x.resultDate
 
     };
 
   });
 
+
   localStorage.setItem(
-    STORAGE_KEY,
+    KEY,
     JSON.stringify(saved)
   );
+
 }
 
 
-/* =========================
+/* ================================
    日期格式
-========================= */
+   ================================ */
 
-function formatDate(date) {
+function fmt(d){
 
-  if (!date) {
-    return "—";
-  }
+  return d
+    ? d.replaceAll('-','/')
+    : '—';
 
-  return String(date).replaceAll("-", "/");
 }
 
 
-/* =========================
+/* ================================
    HTML 安全處理
-========================= */
+   ================================ */
 
-function escapeHTML(value) {
+function esc(s){
 
-  return String(value ?? "").replace(
+  return String(s).replace(
     /[&<>"']/g,
-    char => ({
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#039;"
-    }[char])
+    m => ({
+      '&':'&amp;',
+      '<':'&lt;',
+      '>':'&gt;',
+      '"':'&quot;',
+      "'":'&#039;'
+    }[m])
   );
+
 }
 
 
-/* =========================
+/* ================================
    結果文字
-========================= */
+   ================================ */
 
-function resultLabel(result) {
+function label(result){
 
-  const labels = {
+  return {
 
     pending:
-      "🟡 待公布",
+      '🟡 待公布',
 
     selected:
-      "🟢 入選",
+      '🟢 入選',
 
     honorable:
-      "🔵 優選／佳作",
+      '🔵 優選／佳作',
 
     winner:
-      "🏆 得獎",
+      '🏆 得獎',
 
     not_selected:
-      "🔴 未入選"
+      '🔴 未入選'
 
-  };
+  }[result] ||
+    '🟡 待公布';
 
-  return labels[result] || labels.pending;
 }
 
 
-/* =========================
+/* ================================
    結果顏色
-========================= */
+   ================================ */
 
-function resultClass(result) {
+function cls(result){
 
-  if (result === "winner") {
-    return "gold";
+  if(result === 'winner'){
+    return 'gold';
   }
 
-  if (result === "selected") {
-    return "green";
+  if(result === 'selected'){
+    return 'green';
   }
 
-  if (result === "honorable") {
-    return "blue";
+  if(result === 'honorable'){
+    return 'blue';
   }
 
-  if (result === "not_selected") {
-    return "red";
+  if(result === 'not_selected'){
+    return 'red';
   }
 
-  return "pending";
-}
-
-
-/* =========================
-   篩選
-========================= */
-
-function getFilteredData() {
-
-  return data.filter(item => {
-
-    if (filter === "all") {
-      return true;
-    }
-
-    if (filter === "joined") {
-      return item.participating;
-    }
-
-    if (filter === "pending") {
-      return (
-        item.participating &&
-        item.result === "pending"
-      );
-    }
-
-    if (filter === "result") {
-      return (
-        item.participating &&
-        item.result !== "pending"
-      );
-    }
-
-    return true;
-
-  });
+  return 'pending';
 
 }
 
 
-/* =========================
-   顯示資料
-========================= */
+/* ================================
+   顯示比賽
+   ================================ */
 
-function render() {
-
-  const list =
-    document.getElementById("list");
+function render(){
 
   const rows =
-    getFilteredData();
+    data.filter(x => {
 
-  if (rows.length === 0) {
+      if(filter === 'all'){
+        return true;
+      }
 
-    list.innerHTML =
-      '<div class="empty">目前沒有符合條件的比賽</div>';
+      if(filter === 'joined'){
+        return x.participating;
+      }
 
-  } else {
+      if(filter === 'pending'){
+        return (
+          x.participating &&
+          x.result === 'pending'
+        );
+      }
 
-    list.innerHTML =
-      rows.map(item => `
+      if(filter === 'result'){
+        return (
+          x.participating &&
+          x.result !== 'pending'
+        );
+      }
 
-        <div class="row">
+      return true;
 
-          <div>
+    });
 
-            <input
-              class="check"
-              type="checkbox"
-              ${item.participating ? "checked" : ""}
-              data-id="${escapeHTML(item.title)}"
-            >
 
-          </div>
+  document.getElementById(
+    'list'
+  ).innerHTML =
+    rows.map(x => `
 
-          <div class="title">
-            ${escapeHTML(item.title)}
-          </div>
+      <div class="row">
 
-          <div class="deadline">
-            ${formatDate(item.deadline)}
-          </div>
+        <div>
 
-          <div class="resultDate">
-            ${formatDate(item.resultDate)}
-          </div>
-
-          <div class="statuscol">
-
-            <button
-              class="resultBtn ${resultClass(item.result)}"
-              data-result-id="${escapeHTML(item.title)}"
-            >
-              ${resultLabel(item.result)}
-            </button>
-
-          </div>
+          <input
+            class="check"
+            type="checkbox"
+            ${x.participating ? 'checked' : ''}
+            data-id="${esc(x.title)}"
+          >
 
         </div>
 
-      `).join("");
 
-  }
+        <div class="title">
+          ${esc(x.title)}
+        </div>
 
 
-  /* 參加 checkbox */
+        <div class="deadline">
+          ${fmt(x.deadline)}
+        </div>
+
+
+        <div class="resultDate">
+          ${fmt(x.resultDate)}
+        </div>
+
+
+        <div class="statuscol">
+
+          <button
+            class="resultBtn ${cls(x.result)}"
+            data-result-id="${esc(x.title)}"
+          >
+            ${label(x.result)}
+          </button>
+
+        </div>
+
+      </div>
+
+    `).join('');
+
+
+  /*
+    勾選參加
+  */
 
   document
-    .querySelectorAll(".check")
-    .forEach(checkbox => {
+    .querySelectorAll('.check')
+    .forEach(check => {
 
-      checkbox.onchange = () => {
+      check.onchange = () => {
 
         const item =
           data.find(
             x =>
               x.title ===
-              checkbox.dataset.id
+              check.dataset.id
           );
 
-        if (!item) {
+        if(!item){
           return;
         }
 
         item.participating =
-          checkbox.checked;
+          check.checked;
 
         persist();
 
@@ -701,10 +727,12 @@ function render() {
     });
 
 
-  /* 結果按鈕 */
+  /*
+    修改結果
+  */
 
   document
-    .querySelectorAll("[data-result-id]")
+    .querySelectorAll('[data-result-id]')
     .forEach(button => {
 
       button.onclick = () => {
@@ -716,78 +744,69 @@ function render() {
               button.dataset.resultId
           );
 
-        if (!editing) {
-          return;
-        }
+        if(editing){
 
-        document
-          .getElementById("dlg")
-          .showModal();
+          document
+            .getElementById('dlg')
+            .showModal();
+
+        }
 
       };
 
     });
 
 
-  updateStats();
-
-}
-
-
-/* =========================
-   統計數字
-========================= */
-
-function updateStats() {
+  /*
+    統計
+  */
 
   const joined =
     data.filter(
-      item => item.participating
+      x => x.participating
     );
 
-  const tracking =
+
+  document.getElementById(
+    'joinedCount'
+  ).textContent =
+    joined.length;
+
+
+  document.getElementById(
+    'trackingCount'
+  ).textContent =
     joined.filter(
-      item => item.result === "pending"
-    );
+      x => x.result === 'pending'
+    ).length;
 
-  const selected =
+
+  document.getElementById(
+    'selectedCount'
+  ).textContent =
     joined.filter(
-      item =>
-        item.result === "selected" ||
-        item.result === "honorable"
-    );
+      x =>
+        ['selected','honorable']
+        .includes(x.result)
+    ).length;
 
-  const winners =
+
+  document.getElementById(
+    'winnerCount'
+  ).textContent =
     joined.filter(
-      item => item.result === "winner"
-    );
-
-
-  document.getElementById(
-    "joinedCount"
-  ).textContent = joined.length;
-
-  document.getElementById(
-    "trackingCount"
-  ).textContent = tracking.length;
-
-  document.getElementById(
-    "selectedCount"
-  ).textContent = selected.length;
-
-  document.getElementById(
-    "winnerCount"
-  ).textContent = winners.length;
+      x => x.result === 'winner'
+    ).length;
 
 }
 
 
-/* =========================
-   篩選按鈕
-========================= */
+/* ================================
+   篩選
+   ================================ */
 
 document
-  .querySelectorAll("[data-filter]")
+  .querySelectorAll('[data-filter]')
   .forEach(button => {
 
     button.onclick = () => {
@@ -795,15 +814,18 @@ document
       filter =
         button.dataset.filter;
 
+
       document
-        .querySelectorAll("[data-filter]")
-        .forEach(item => {
+        .querySelectorAll('[data-filter]')
+        .forEach(x =>
+          x.classList.remove('active')
+        );
 
-          item.classList.remove("active");
 
-        });
+      button.classList.add(
+        'active'
+      );
 
-      button.classList.add("active");
 
       render();
 
@@ -812,28 +834,32 @@ document
   });
 
 
-/* =========================
+/* ================================
    修改結果
-========================= */
+   ================================ */
 
 document
-  .querySelectorAll("[data-result]")
+  .querySelectorAll('[data-result]')
   .forEach(button => {
 
     button.onclick = () => {
 
-      if (!editing) {
+      if(!editing){
         return;
       }
+
 
       editing.result =
         button.dataset.result;
 
+
       persist();
 
+
       document
-        .getElementById("dlg")
+        .getElementById('dlg')
         .close();
+
 
       render();
 
@@ -842,42 +868,205 @@ document
   });
 
 
-/* =========================
-   關閉視窗
-========================= */
+/* ================================
+   關閉結果視窗
+   ================================ */
 
-document
-  .getElementById("close")
-  .onclick = () => {
+document.getElementById(
+  'close'
+).onclick = () => {
 
-    document
-      .getElementById("dlg")
-      .close();
+  document
+    .getElementById('dlg')
+    .close();
 
-  };
+};
 
 
-/* =========================
-   更新比賽資料
-========================= */
+/* ================================
+   手動重新讀取 JSON
+   ================================ */
 
-document
-  .getElementById("update")
-  .onclick = () => {
+document.getElementById(
+  'update'
+).onclick = async () => {
 
-    window.open(
-      "https://github.com/jokerui666/poster-competition-tracker/actions/workflows/update-posterterritory.yml",
-      "_blank"
+  const button =
+    document.getElementById(
+      'update'
     );
 
-  };
+
+  button.disabled = true;
+
+  button.textContent =
+    '↻ 讀取中…';
 
 
-/* =========================
-   啟動
-========================= */
+  await load();
+
+
+  button.disabled = false;
+
+  button.textContent =
+    '↻ 更新比賽資料';
+
+};
+
+
+/* ================================
+   第一次載入
+   ================================ */
 
 load();
+
+
+/* ==================================================
+   自動偵測 competitions.json 是否更新
+   ==================================================
+
+   注意：
+   這裡不是連 PosterTerritory。
+
+   只是每 1 分鐘檢查一次自己網站上的
+   competitions.json。
+
+   如果資料沒有變化：
+       → 什麼都不做
+
+   如果資料有變化：
+       → load()
+       → render()
+       → 前端自動更新
+*/
+
+let lastDataSignature = '';
+
+
+async function checkForUpdates(){
+
+  try{
+
+    const response =
+      await fetch(
+        'competitions.json?t=' +
+        Date.now(),
+        {
+          cache:'no-store'
+        }
+      );
+
+
+    if(!response.ok){
+      return;
+    }
+
+
+    const fresh =
+      await response.json();
+
+
+    if(!Array.isArray(fresh)){
+      return;
+    }
+
+
+    /*
+      只比較真正會影響比賽列表的資料
+    */
+
+    const signature =
+      JSON.stringify(
+        fresh.map(x => ({
+          title:x.title,
+          deadline:x.deadline,
+          resultDate:x.resultDate,
+          url:x.url
+        }))
+      );
+
+
+    /*
+      第一次檢查只建立基準
+    */
+
+    if(!lastDataSignature){
+
+      lastDataSignature =
+        signature;
+
+      return;
+
+    }
+
+
+    /*
+      沒有變化
+    */
+
+    if(
+      signature ===
+      lastDataSignature
+    ){
+
+      return;
+
+    }
+
+
+    /*
+      發現 competitions.json 已更新
+    */
+
+    console.log(
+      '偵測到最新比賽資料，正在更新前端……'
+    );
+
+
+    lastDataSignature =
+      signature;
+
+
+    await load();
+
+
+    console.log(
+      '前端更新完成，共',
+      data.length,
+      '場比賽'
+    );
+
+
+  }catch(error){
+
+    console.log(
+      '自動檢查資料失敗：',
+      error
+    );
+
+  }
+
+}
+
+
+/*
+  每 1 分鐘檢查一次
+*/
+
+setInterval(
+  checkForUpdates,
+  60 * 1000
+);
+
+
+/*
+  網頁開啟後稍微延遲一次檢查
+*/
+
+setTimeout(
+  checkForUpdates,
+  3000
+);
 
 </script>
 
