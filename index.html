@@ -1,1728 +1,311 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-
 <meta charset="utf-8">
-
-<meta
-  name="viewport"
-  content="width=device-width,initial-scale=1">
-
-<title>
-JHENG CHANG CHEN — Poster Competition Tracker
-</title>
-
-
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JHENG CHANG CHEN — Poster Competition Tracker</title>
 <style>
-
-/* =====================================================
-   BASIC
-===================================================== */
-
-*{
-  box-sizing:border-box;
-}
-
-body{
-  margin:0;
-  background:#fff;
-  color:#111;
-  font-family:
-    Arial,
-    "Noto Sans TC",
-    "Microsoft JhengHei",
-    sans-serif;
-}
-
-.wrap{
-  max-width:1180px;
-  margin:auto;
-  padding:28px 24px 60px;
-}
-
-
-/* =====================================================
-   HEADER
-===================================================== */
-
-header{
-  border-bottom:3px solid #111;
-  padding-bottom:16px;
-  margin-bottom:18px;
-}
-
-h1{
-  margin:0;
-  font-size:clamp(30px,5vw,52px);
-  line-height:1.05;
-  letter-spacing:-1px;
-}
-
-.sub{
-  color:#666;
-  margin-top:7px;
-  font-size:15px;
-}
-
-
-/* =====================================================
-   STATISTICS
-===================================================== */
-
-.stats{
-  display:flex;
-  gap:26px;
-  flex-wrap:wrap;
-  margin:20px 0;
-  font-size:14px;
-}
-
-.stats span{
-  white-space:nowrap;
-}
-
-.stats b{
-  font-size:19px;
-  margin-left:3px;
-}
-
-
-/* =====================================================
-   CONTROLS
-===================================================== */
-
-.controls{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  flex-wrap:wrap;
-  margin:14px 0 15px;
-}
-
-button{
-  border:1px solid #bbb;
-  background:#fff;
-  color:#111;
-  border-radius:9px;
-  padding:10px 14px;
-  font-size:13px;
-  cursor:pointer;
-  transition:.15s ease;
-}
-
-button:hover{
-  background:#f5f5f5;
-}
-
-button:active{
-  transform:translateY(1px);
-}
-
-button.active{
-  background:#111;
-  color:#fff;
-  border-color:#111;
-}
-
-.refresh{
-  margin-left:auto;
-}
-
-.backend{
-  font-weight:700;
-  border-color:#111;
-}
-
-
-/* =====================================================
-   STATUS
-===================================================== */
-
-.status{
-  display:flex;
-  align-items:center;
-  flex-wrap:wrap;
-  gap:10px;
-
-  min-height:24px;
-
-  margin:9px 0 13px;
-
-  font-size:12px;
-  color:#666;
-}
-
-.statusMain{
-  color:#16833b;
-}
-
-.statusMain.loading{
-  color:#a56b00;
-}
-
-.statusMain.error{
-  color:#c62828;
-}
-
-.statusSep{
-  color:#bbb;
-}
-
-
-/* =====================================================
-   TABLE
-===================================================== */
-
-.table{
-  border-top:2px solid #111;
-}
-
-.row{
-  display:grid;
-
-  grid-template-columns:
-    48px
-    minmax(300px,1fr)
-    125px
-    170px;
-
-  gap:14px;
-
-  align-items:center;
-
-  padding:15px 6px;
-
-  border-bottom:1px solid #ddd;
-}
-
-.head{
-  background:#f4f4f4;
-
-  color:#666;
-
-  font-size:11px;
-
-  font-weight:700;
-
-  padding:10px 6px;
-}
-
-
-/* =====================================================
-   TITLE
-===================================================== */
-
-.title{
-  min-width:0;
-
-  line-height:1.35;
-}
-
-.title a{
-  display:inline-block;
-
-  color:#111;
-
-  text-decoration:none;
-
-  font-size:15px;
-
-  font-weight:700;
-}
-
-.title a:hover{
-  text-decoration:underline;
-}
-
-.title a::after{
-  content:" ↗";
-
-  color:#999;
-
-  font-size:11px;
-}
-
-.titleZh{
-  margin-top:4px;
-
-  color:#777;
-
-  font-size:12px;
-
-  font-weight:400;
-
-  line-height:1.4;
-}
-
-
-/* =====================================================
-   DEADLINE
-===================================================== */
-
-.deadline{
-  font-size:12px;
-
-  white-space:nowrap;
-}
-
-
-/* =====================================================
-   RESULT
-===================================================== */
-
-.resultBtn{
-  width:100%;
-
-  text-align:left;
-
-  white-space:nowrap;
-}
-
-.pending{
-  color:#777;
-}
-
-.green{
-  color:#16833b;
-}
-
-.red{
-  color:#c62828;
-}
-
-.gold{
-  color:#a56b00;
-}
-
-.blue{
-  color:#2457a6;
-}
-
-
-/* =====================================================
-   CHECKBOX
-===================================================== */
-
-.check{
-  width:22px;
-  height:22px;
-
-  accent-color:#111;
-
-  cursor:pointer;
-}
-
-
-/* =====================================================
-   EMPTY
-===================================================== */
-
-.empty{
-  padding:35px 10px;
-
-  color:#777;
-
-  text-align:center;
-
-  font-size:13px;
-}
-
-
-/* =====================================================
-   NOTE
-===================================================== */
-
-.note{
-  margin-top:13px;
-
-  color:#777;
-
-  font-size:12px;
-
-  line-height:1.6;
-}
-
-
-/* =====================================================
-   DIALOG
-===================================================== */
-
-dialog{
-  border:0;
-
-  border-radius:12px;
-
-  padding:20px;
-
-  max-width:420px;
-
-  width:calc(100% - 30px);
-
-  box-shadow:
-    0 10px 40px #0003;
-}
-
-dialog::backdrop{
-  background:#0005;
-}
-
-dialog h3{
-  margin-top:0;
-}
-
-dialog button{
-  margin-top:6px;
-}
-
-.close{
-  float:right;
-
-  padding:4px 9px;
-}
-
-
-/* =====================================================
-   MOBILE
-===================================================== */
-
+*{box-sizing:border-box}
+body{margin:0;background:#fff;color:#111;font-family:Arial,"Noto Sans TC","Microsoft JhengHei",sans-serif}
+.wrap{max-width:1180px;margin:auto;padding:28px 24px 60px}
+header{border-bottom:3px solid #111;padding-bottom:16px;margin-bottom:18px}
+h1{margin:0;font-size:clamp(30px,5vw,52px);line-height:1.05;letter-spacing:-1px}
+.sub{color:#666;margin-top:7px;font-size:15px}
+.stats{display:flex;gap:26px;flex-wrap:wrap;margin:20px 0;font-size:14px}
+.stats span{white-space:nowrap}.stats b{font-size:19px;margin-left:3px}
+.controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:14px 0 15px}
+button{border:1px solid #bbb;background:#fff;color:#111;border-radius:9px;padding:10px 14px;font-size:13px;cursor:pointer}
+button:hover{background:#f5f5f5}
+button.active{background:#111;color:#fff;border-color:#111}
+.refresh{margin-left:auto}.backend{font-weight:700;border-color:#111}
+.status{display:flex;align-items:center;flex-wrap:wrap;gap:10px;min-height:24px;margin:9px 0 13px;font-size:12px;color:#666}
+.statusMain{color:#16833b}.statusMain.loading{color:#a56b00}.statusMain.error{color:#c62828}.statusSep{color:#bbb}
+.table{border-top:2px solid #111}
+.row{display:grid;grid-template-columns:48px minmax(300px,1fr) 125px 170px;gap:14px;align-items:center;padding:15px 6px;border-bottom:1px solid #ddd}
+.head{background:#f4f4f4;color:#666;font-size:11px;font-weight:700;padding:10px 6px}
+.title{min-width:0;line-height:1.35}.title a{display:inline-block;color:#111;text-decoration:none;font-size:15px;font-weight:700}
+.title a:hover{text-decoration:underline}.title a::after{content:" ↗";color:#999;font-size:11px}
+.titleZh{margin-top:4px;color:#777;font-size:12px;font-weight:400;line-height:1.4}
+.deadline{font-size:12px;white-space:nowrap}
+.resultBtn{width:100%;text-align:left;white-space:nowrap}
+.pending{color:#777}.green{color:#16833b}.red{color:#c62828}.gold{color:#a56b00}.blue{color:#2457a6}
+.check{width:22px;height:22px;accent-color:#111;cursor:pointer}
+.empty{padding:35px 10px;color:#777;text-align:center;font-size:13px}
+.note{margin-top:13px;color:#777;font-size:12px;line-height:1.6}
+dialog{border:0;border-radius:12px;padding:20px;max-width:420px;width:calc(100% - 30px);box-shadow:0 10px 40px #0003}
+dialog::backdrop{background:#0005}dialog h3{margin-top:0}dialog button{margin-top:6px}.close{float:right;padding:4px 9px}
 @media(max-width:760px){
-
-  .wrap{
-    padding:22px 15px 45px;
-  }
-
-  h1{
-    font-size:32px;
-  }
-
-  .stats{
-    gap:15px;
-  }
-
-  .controls{
-    align-items:stretch;
-  }
-
-  .refresh{
-    margin-left:0;
-  }
-
-  .row{
-    grid-template-columns:
-      38px
-      minmax(180px,1fr)
-      90px;
-
-    gap:9px;
-
-    padding:14px 4px;
-  }
-
-  .head{
-    grid-template-columns:
-      38px
-      minmax(180px,1fr)
-      90px;
-  }
-
-  .statuscol{
-    display:none;
-  }
-
-  .deadline{
-    font-size:11px;
-  }
-
-  .title a{
-    font-size:14px;
-  }
-
+.wrap{padding:22px 15px 45px}h1{font-size:32px}.stats{gap:15px}.controls{align-items:stretch}.refresh{margin-left:0}
+.row{grid-template-columns:38px minmax(180px,1fr) 90px;gap:9px;padding:14px 4px}
+.head{grid-template-columns:38px minmax(180px,1fr) 90px}.statuscol{display:none}.deadline{font-size:11px}.title a{font-size:14px}
 }
-
 </style>
-
 </head>
-
-
 <body>
-
-
 <main class="wrap">
-
-
-<!-- =====================================================
-     HEADER
-===================================================== -->
-
-<header>
-
-  <h1>
-    JHENG CHANG CHEN
-  </h1>
-
-  <div class="sub">
-    2026 POSTER COMPETITION TRACKER
-  </div>
-
-</header>
-
-
-<!-- =====================================================
-     STATISTICS
-===================================================== -->
+<header><h1>JHENG CHANG CHEN</h1><div class="sub">2026 POSTER COMPETITION TRACKER</div></header>
 
 <div class="stats">
-
-  <span>
-    已參加
-    <b id="joinedCount">0</b>
-  </span>
-
-  <span>
-    追蹤中
-    <b id="trackingCount">0</b>
-  </span>
-
-  <span>
-    入選
-    <b id="selectedCount">0</b>
-  </span>
-
-  <span>
-    得獎
-    <b id="winnerCount">0</b>
-  </span>
-
+<span>已參加 <b id="joinedCount">0</b></span>
+<span>追蹤中 <b id="trackingCount">0</b></span>
+<span>入選 <b id="selectedCount">0</b></span>
+<span>得獎 <b id="winnerCount">0</b></span>
 </div>
-
-
-<!-- =====================================================
-     CONTROLS
-===================================================== -->
 
 <div class="controls">
-
-
-  <button
-    class="active"
-    data-filter="all">
-
-    全部
-
-  </button>
-
-
-  <button
-    data-filter="joined">
-
-    我有參加
-
-  </button>
-
-
-  <button
-    data-filter="pending">
-
-    待公布
-
-  </button>
-
-
-  <button
-    data-filter="result">
-
-    已有結果
-
-  </button>
-
-
-  <button
-    id="refresh"
-    class="refresh">
-
-    ↻ 重新整理資料
-
-  </button>
-
-
-  <button
-    id="backend"
-    class="backend">
-
-    ⚙ 後台更新資料
-
-  </button>
-
-
+<button class="active" data-filter="all">全部</button>
+<button data-filter="joined">我有參加</button>
+<button data-filter="pending">待公布</button>
+<button data-filter="result">已有結果</button>
+<button id="refresh" class="refresh">↻ 重新整理資料</button>
+<button id="backend" class="backend">⚙ 後台更新資料</button>
 </div>
 
-
-<!-- =====================================================
-     STATUS
-===================================================== -->
-
-<div
-  id="status"
-  class="status">
-
-  <span
-    id="statusMain"
-    class="statusMain">
-
-    ● 正在載入資料……
-
-  </span>
-
-
-  <span
-    id="statusCount">
-  </span>
-
-
-  <span
-    id="statusSep"
-    class="statusSep">
-  </span>
-
-
-  <span
-    id="statusTime">
-  </span>
-
+<div id="status" class="status">
+<span id="statusMain" class="statusMain">● 正在載入資料……</span>
+<span id="statusCount"></span>
+<span id="statusSep" class="statusSep"></span>
+<span id="statusTime"></span>
 </div>
-
-
-<!-- =====================================================
-     TABLE
-===================================================== -->
 
 <div class="table">
-
-
-  <div class="row head">
-
-    <div>
-      參加
-    </div>
-
-
-    <div>
-      COMPETITION
-    </div>
-
-
-    <div>
-      DEADLINE
-    </div>
-
-
-    <div>
-      我的結果
-    </div>
-
-  </div>
-
-
-  <div id="list"></div>
-
-
+<div class="row head">
+<div>參加</div>
+<div>COMPETITION</div>
+<div>DEADLINE</div>
+<div>我的結果</div>
 </div>
-
-
-<!-- =====================================================
-     NOTE
-===================================================== -->
+<div id="list"></div>
+</div>
 
 <div class="note">
-
-  比賽依 Deadline
-  <b>最新 → 最舊</b> 排序。
-
-  <br>
-
-  英文比賽名稱可直接點擊前往該比賽官方網站。
-
-  <br>
-
-  第二行為繁體中文名稱。
-
-  <br>
-
-  「↻ 重新整理資料」只會重新讀取目前的
-  <b>competitions.json</b>。
-
-  <br>
-
-  「⚙ 後台更新資料」會開啟 GitHub Actions，
-  執行 PosterTerritory 資料更新。
-
-  <br>
-
-  參加狀態與結果會保存在目前瀏覽器。
-
+比賽依 Deadline 最新 → 最舊排序。英文比賽名稱只有在後端找到真正官方網站時才會成為連結，不會再退回 PosterTerritory。第二行為繁體中文名稱。
 </div>
-
-
 </main>
 
-
-<!-- =====================================================
-     RESULT DIALOG
-===================================================== -->
-
 <dialog id="dlg">
-
-
-  <button
-    class="close"
-    id="close">
-
-    ×
-
-  </button>
-
-
-  <h3>
-    修改結果
-  </h3>
-
-
-  <button
-    data-result="pending">
-
-    🟡 待公布
-
-  </button>
-
-  <br>
-
-
-  <button
-    data-result="selected">
-
-    🟢 入選
-
-  </button>
-
-  <br>
-
-
-  <button
-    data-result="honorable">
-
-    🔵 優選／佳作
-
-  </button>
-
-  <br>
-
-
-  <button
-    data-result="winner">
-
-    🏆 得獎
-
-  </button>
-
-  <br>
-
-
-  <button
-    data-result="not_selected">
-
-    🔴 未入選
-
-  </button>
-
-
+<button class="close" id="close">×</button>
+<h3>修改結果</h3>
+<button data-result="pending">🟡 待公布</button><br>
+<button data-result="selected">🟢 入選</button><br>
+<button data-result="honorable">🔵 優選／佳作</button><br>
+<button data-result="winner">🏆 得獎</button><br>
+<button data-result="not_selected">🔴 未入選</button>
 </dialog>
 
-
 <script>
+const KEY='jheng-poster-v7';
+const BACKEND_URL='https://github.com/jokerui666/poster-competition-tracker/actions/workflows/update-posterterritory.yml';
 
+let data=[];
+let filter='all';
+let editing=null;
 
-/* =====================================================
-   SETTINGS
-===================================================== */
-
-const KEY =
-  'jheng-poster-v7';
-
-
-const BACKEND_URL =
-  'https://github.com/jokerui666/poster-competition-tracker/actions/workflows/update-posterterritory.yml';
-
-
-let data = [];
-
-let filter = 'all';
-
-let editing = null;
-
-
-/* =====================================================
-   DOM
-===================================================== */
-
-const list =
-  document.getElementById(
-    'list'
-  );
-
-
-const statusMain =
-  document.getElementById(
-    'statusMain'
-  );
-
-
-const statusCount =
-  document.getElementById(
-    'statusCount'
-  );
-
-
-const statusSep =
-  document.getElementById(
-    'statusSep'
-  );
-
-
-const statusTime =
-  document.getElementById(
-    'statusTime'
-  );
-
-
-const dlg =
-  document.getElementById(
-    'dlg'
-  );
-
-
-/* =====================================================
-   DATE
-===================================================== */
+const list=document.getElementById('list');
+const statusMain=document.getElementById('statusMain');
+const statusCount=document.getElementById('statusCount');
+const statusSep=document.getElementById('statusSep');
+const statusTime=document.getElementById('statusTime');
+const dlg=document.getElementById('dlg');
 
 function fmt(date){
-
-  if(!date){
-    return '—';
-  }
-
-  return String(date)
-    .replaceAll('-','/');
-
+  return date ? String(date).replaceAll('-','/') : '—';
 }
-
-
-/* =====================================================
-   TIME
-===================================================== */
 
 function fmtTime(date){
-
-  return new Intl.DateTimeFormat(
-    'zh-TW',
-    {
-      year:'numeric',
-      month:'2-digit',
-      day:'2-digit',
-      hour:'2-digit',
-      minute:'2-digit',
-      hour12:false
-    }
-  ).format(date);
-
+  return new Intl.DateTimeFormat('zh-TW',{
+    year:'numeric',month:'2-digit',day:'2-digit',
+    hour:'2-digit',minute:'2-digit',hour12:false
+  }).format(date);
 }
-
-
-/* =====================================================
-   ESCAPE
-===================================================== */
 
 function esc(value){
-
-  return String(value || '')
-    .replace(
-      /[&<>"']/g,
-      m => ({
-
-        '&':'&amp;',
-
-        '<':'&lt;',
-
-        '>':'&gt;',
-
-        '"':'&quot;',
-
-        "'":'&#039;'
-
-      }[m])
-    );
-
+  return String(value||'').replace(/[&<>"']/g,m=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+  }[m]));
 }
-
-
-/* =====================================================
-   CHINESE TITLE
-===================================================== */
 
 function getChineseTitle(item){
-
-  return (
-
-    item.titleZh ||
-
-    item.traditionalChineseTitle ||
-
-    item.title_zh ||
-
-    item.chineseTitle ||
-
-    item.zhTitle ||
-
-    ''
-
-  );
-
+  return item.titleZh || item.traditionalChineseTitle || item.title_zh || item.chineseTitle || item.zhTitle || '';
 }
-
-
-/* =====================================================
-   RESULT LABEL
-===================================================== */
 
 function label(result){
-
   return {
-
-    pending:
-      '🟡 待公布',
-
-    selected:
-      '🟢 入選',
-
-    honorable:
-      '🔵 優選／佳作',
-
-    winner:
-      '🏆 得獎',
-
-    not_selected:
-      '🔴 未入選'
-
-  }[result]
-
-  ||
-
-  '🟡 待公布';
-
+    pending:'🟡 待公布',
+    selected:'🟢 入選',
+    honorable:'🔵 優選／佳作',
+    winner:'🏆 得獎',
+    not_selected:'🔴 未入選'
+  }[result] || '🟡 待公布';
 }
-
-
-/* =====================================================
-   RESULT CLASS
-===================================================== */
 
 function cls(result){
-
-  if(result === 'winner')
-    return 'gold';
-
-  if(result === 'selected')
-    return 'green';
-
-  if(result === 'honorable')
-    return 'blue';
-
-  if(result === 'not_selected')
-    return 'red';
-
+  if(result==='winner') return 'gold';
+  if(result==='selected') return 'green';
+  if(result==='honorable') return 'blue';
+  if(result==='not_selected') return 'red';
   return 'pending';
-
 }
 
-
-/* =====================================================
-   LOAD DATA
-===================================================== */
-
 async function load(){
-
-  statusMain.className =
-    'statusMain loading';
-
-  statusMain.textContent =
-    '● 正在讀取最新資料……';
-
-
-  statusCount.textContent =
-    '';
-
-
-  statusSep.textContent =
-    '';
-
-
-  statusTime.textContent =
-    '';
-
+  statusMain.className='statusMain loading';
+  statusMain.textContent='● 正在讀取最新資料……';
+  statusCount.textContent='';
+  statusSep.textContent='';
+  statusTime.textContent='';
 
   try{
+    const response=await fetch('competitions.json?ts='+Date.now(),{cache:'no-store'});
+    if(!response.ok) throw new Error('HTTP '+response.status);
 
-    const response =
-      await fetch(
-        'competitions.json?ts=' +
-        Date.now(),
-        {
-          cache:'no-store'
-        }
-      );
+    const fresh=await response.json();
+    if(!Array.isArray(fresh)) throw new Error('competitions.json 格式錯誤');
 
+    const old=JSON.parse(localStorage.getItem(KEY)||'{}');
 
-    if(!response.ok){
+    data=fresh.map(item=>{
+      const saved=old[item.title]||{};
+      return {
+        ...item,
+        participating:!!saved.participating,
+        result:saved.result||item.result||'pending'
+      };
+    });
 
-      throw new Error(
-        'HTTP ' +
-        response.status
-      );
-
-    }
-
-
-    const fresh =
-      await response.json();
-
-
-    if(!Array.isArray(fresh)){
-
-      throw new Error(
-        'competitions.json 格式錯誤'
-      );
-
-    }
-
-
-    /*
-      讀取瀏覽器中的
-      使用者資料
-    */
-
-    const old =
-      JSON.parse(
-        localStorage.getItem(
-          KEY
-        ) || '{}'
-      );
-
-
-    data =
-      fresh.map(item => {
-
-        const saved =
-          old[item.title] || {};
-
-
-        return {
-
-          ...item,
-
-          participating:
-            !!saved.participating,
-
-          result:
-            saved.result ||
-            item.result ||
-            'pending'
-
-        };
-
-      });
-
-
-    /*
-      最新 Deadline
-      → 最舊 Deadline
-    */
-
-    data.sort(
-      (a,b) => {
-
-        const dateA =
-          a.deadline
-          ? new Date(a.deadline)
-          : new Date(0);
-
-
-        const dateB =
-          b.deadline
-          ? new Date(b.deadline)
-          : new Date(0);
-
-
-        return dateB - dateA;
-
-      }
-    );
-
+    data.sort((a,b)=>{
+      const dateA=a.deadline?new Date(a.deadline):new Date(0);
+      const dateB=b.deadline?new Date(b.deadline):new Date(0);
+      return dateB-dateA;
+    });
 
     render();
 
-
-    const now =
-      new Date();
-
-
-    statusMain.className =
-      'statusMain';
-
-
-    statusMain.textContent =
-      '● 已載入最新資料';
-
-
-    statusCount.textContent =
-      data.length +
-      ' 場比賽';
-
-
-    statusSep.textContent =
-      '|';
-
-
-    statusTime.textContent =
-      '最後讀取：' +
-      fmtTime(now);
-
-  }
-
-
-  catch(error){
-
+    statusMain.className='statusMain';
+    statusMain.textContent='● 已載入最新資料';
+    statusCount.textContent=data.length+' 場比賽';
+    statusSep.textContent='|';
+    statusTime.textContent='最後讀取：'+fmtTime(new Date());
+  }catch(error){
     console.error(error);
-
-
-    statusMain.className =
-      'statusMain error';
-
-
-    statusMain.textContent =
-      '● 無法讀取最新資料';
-
-
-    statusCount.textContent =
-      '請確認 competitions.json';
-
-
-    statusSep.textContent =
-      '';
-
-
-    statusTime.textContent =
-      '';
-
+    statusMain.className='statusMain error';
+    statusMain.textContent='● 無法讀取最新資料';
+    statusCount.textContent='請確認 competitions.json';
+    statusSep.textContent='';
+    statusTime.textContent='';
   }
-
 }
-
-
-/* =====================================================
-   SAVE
-===================================================== */
 
 function persist(){
-
-  const saved = {};
-
-
-  data.forEach(item => {
-
-    saved[item.title] = {
-
-      participating:
-        item.participating,
-
-      result:
-        item.result
-
+  const saved={};
+  data.forEach(item=>{
+    saved[item.title]={
+      participating:item.participating,
+      result:item.result
     };
-
   });
-
-
-  localStorage.setItem(
-    KEY,
-    JSON.stringify(saved)
-  );
-
+  localStorage.setItem(KEY,JSON.stringify(saved));
 }
-
-
-/* =====================================================
-   RENDER
-===================================================== */
 
 function render(){
+  const rows=data.filter(item=>{
+    if(filter==='all') return true;
+    if(filter==='joined') return item.participating;
+    if(filter==='pending') return item.participating && item.result==='pending';
+    if(filter==='result') return item.participating && item.result!=='pending';
+    return true;
+  });
 
-  const rows =
-    data.filter(item => {
+  if(!rows.length){
+    list.innerHTML='<div class="empty">目前沒有符合條件的比賽。</div>';
+  }else{
+    list.innerHTML=rows.map(item=>{
+      const chinese=getChineseTitle(item);
 
-      if(filter === 'all')
-        return true;
+      /*
+        重要：
+        只使用 officialUrl。
+        不再使用 item.url 作為 fallback。
+      */
+      const website=item.officialUrl || '';
 
+      const titleHTML=website
+        ? `<a href="${esc(website)}" target="_blank" rel="noopener noreferrer" title="前往比賽官方網站">${esc(item.title)}</a>`
+        : `<span>${esc(item.title)}</span>`;
 
-      if(filter === 'joined')
-        return item.participating;
+      return `
+      <div class="row">
+        <div>
+          <input class="check" type="checkbox"
+            ${item.participating?'checked':''}
+            data-id="${esc(item.title)}">
+        </div>
 
+        <div class="title">
+          ${titleHTML}
+          ${chinese?`<div class="titleZh">${esc(chinese)}</div>`:''}
+        </div>
 
-      if(filter === 'pending'){
+        <div class="deadline">${fmt(item.deadline)}</div>
 
-        return (
-          item.participating &&
-          item.result === 'pending'
-        );
-
-      }
-
-
-      if(filter === 'result'){
-
-        return (
-          item.participating &&
-          item.result !== 'pending'
-        );
-
-      }
-
-
-      return true;
-
-    });
-
-
-  if(rows.length === 0){
-
-    list.innerHTML = `
-
-      <div class="empty">
-
-        目前沒有符合條件的比賽。
-
-      </div>
-
-    `;
-
+        <div>
+          <button class="resultBtn ${cls(item.result)}"
+            data-result-id="${esc(item.title)}">
+            ${label(item.result)}
+          </button>
+        </div>
+      </div>`;
+    }).join('');
   }
 
-
-  else{
-
-    list.innerHTML =
-
-      rows.map(item => {
-
-
-        /*
-          官方網站
-
-          優先使用 officialUrl
-
-          如果後端舊資料還沒有
-          officialUrl，
-          再使用 url。
-        */
-
-        const website =
-          item.officialUrl ||
-          item.url ||
-          '';
-
-
-        const chinese =
-          getChineseTitle(item);
-
-
-        const titleHTML =
-          website
-
-          ?
-
-          `
-          <a
-            href="${esc(website)}"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="前往比賽官方網站">
-
-            ${esc(item.title)}
-
-          </a>
-          `
-
-          :
-
-          `
-          <span>
-
-            ${esc(item.title)}
-
-          </span>
-          `;
-
-
-        return `
-
-          <div class="row">
-
-
-            <!-- PARTICIPATION -->
-
-            <div>
-
-              <input
-                class="check"
-                type="checkbox"
-
-                ${
-                  item.participating
-                  ? 'checked'
-                  : ''
-                }
-
-                data-id="${esc(item.title)}"
-              >
-
-            </div>
-
-
-            <!-- COMPETITION -->
-
-            <div class="title">
-
-              ${titleHTML}
-
-
-              ${
-                chinese
-
-                ?
-
-                `
-                <div class="titleZh">
-
-                  ${esc(chinese)}
-
-                </div>
-                `
-
-                :
-
-                ''
-              }
-
-            </div>
-
-
-            <!-- DEADLINE -->
-
-            <div class="deadline">
-
-              ${fmt(item.deadline)}
-
-            </div>
-
-
-            <!-- RESULT -->
-
-            <div>
-
-              <button
-                class="resultBtn ${cls(item.result)}"
-                data-result-id="${esc(item.title)}">
-
-                ${label(item.result)}
-
-              </button>
-
-            </div>
-
-
-          </div>
-
-        `;
-
-      }).join('');
-
-  }
-
-
-  /* ===================================================
-     CHECKBOX
-  =================================================== */
-
-  document
-    .querySelectorAll('.check')
-    .forEach(check => {
-
-      check.onchange = () => {
-
-        const item =
-          data.find(
-            x =>
-              x.title ===
-              check.dataset.id
-          );
-
-
-        if(!item)
-          return;
-
-
-        item.participating =
-          check.checked;
-
-
-        persist();
-
-
-        render();
-
-      };
-
-    });
-
-
-  /* ===================================================
-     RESULT
-  =================================================== */
-
-  document
-    .querySelectorAll(
-      '[data-result-id]'
-    )
-    .forEach(button => {
-
-      button.onclick = () => {
-
-        editing =
-          data.find(
-            x =>
-              x.title ===
-              button.dataset.resultId
-          );
-
-
-        if(editing){
-
-          dlg.showModal();
-
-        }
-
-      };
-
-    });
-
-
-  /* ===================================================
-     STATISTICS
-  =================================================== */
-
-  const joined =
-    data.filter(
-      x =>
-        x.participating
-    );
-
-
-  document.getElementById(
-    'joinedCount'
-  ).textContent =
-    joined.length;
-
-
-  document.getElementById(
-    'trackingCount'
-  ).textContent =
-
-    joined.filter(
-      x =>
-        x.result === 'pending'
-    ).length;
-
-
-  document.getElementById(
-    'selectedCount'
-  ).textContent =
-
-    joined.filter(
-      x =>
-        [
-          'selected',
-          'honorable'
-        ].includes(x.result)
-    ).length;
-
-
-  document.getElementById(
-    'winnerCount'
-  ).textContent =
-
-    joined.filter(
-      x =>
-        x.result === 'winner'
-    ).length;
-
+  document.querySelectorAll('.check').forEach(check=>{
+    check.onchange=()=>{
+      const item=data.find(x=>x.title===check.dataset.id);
+      if(!item) return;
+      item.participating=check.checked;
+      persist();
+      render();
+    };
+  });
+
+  document.querySelectorAll('[data-result-id]').forEach(button=>{
+    button.onclick=()=>{
+      editing=data.find(x=>x.title===button.dataset.resultId);
+      if(editing) dlg.showModal();
+    };
+  });
+
+  const joined=data.filter(x=>x.participating);
+
+  document.getElementById('joinedCount').textContent=joined.length;
+  document.getElementById('trackingCount').textContent=joined.filter(x=>x.result==='pending').length;
+  document.getElementById('selectedCount').textContent=joined.filter(x=>['selected','honorable'].includes(x.result)).length;
+  document.getElementById('winnerCount').textContent=joined.filter(x=>x.result==='winner').length;
 }
 
+document.querySelectorAll('[data-filter]').forEach(button=>{
+  button.onclick=()=>{
+    filter=button.dataset.filter;
+    document.querySelectorAll('[data-filter]').forEach(item=>item.classList.remove('active'));
+    button.classList.add('active');
+    render();
+  };
+});
 
-/* =====================================================
-   FILTER
-===================================================== */
+document.querySelectorAll('[data-result]').forEach(button=>{
+  button.onclick=()=>{
+    if(!editing) return;
+    editing.result=button.dataset.result;
+    persist();
+    dlg.close();
+    render();
+  };
+});
 
-document
-  .querySelectorAll(
-    '[data-filter]'
-  )
-  .forEach(button => {
-
-    button.onclick = () => {
-
-      filter =
-        button.dataset.filter;
-
-
-      document
-        .querySelectorAll(
-          '[data-filter]'
-        )
-        .forEach(item => {
-
-          item.classList.remove(
-            'active'
-          );
-
-        });
-
-
-      button.classList.add(
-        'active'
-      );
-
-
-      render();
-
-    };
-
-  });
-
-
-/* =====================================================
-   RESULT SELECTION
-===================================================== */
-
-document
-  .querySelectorAll(
-    '[data-result]'
-  )
-  .forEach(button => {
-
-    button.onclick = () => {
-
-      if(!editing)
-        return;
-
-
-      editing.result =
-        button.dataset.result;
-
-
-      persist();
-
-
-      dlg.close();
-
-
-      render();
-
-    };
-
-  });
-
-
-/* =====================================================
-   CLOSE
-===================================================== */
-
-document.getElementById(
-  'close'
-).onclick = () => {
-
-  dlg.close();
-
-};
-
-
-/* =====================================================
-   REFRESH
-===================================================== */
-
-document.getElementById(
-  'refresh'
-).onclick = async () => {
-
-  await load();
-
-};
-
-
-/* =====================================================
-   BACKEND
-===================================================== */
-
-document.getElementById(
-  'backend'
-).onclick = () => {
-
-  window.open(
-    BACKEND_URL,
-    '_blank'
-  );
-
-};
-
-
-/* =====================================================
-   INITIAL LOAD
-===================================================== */
+document.getElementById('close').onclick=()=>dlg.close();
+document.getElementById('refresh').onclick=()=>load();
+document.getElementById('backend').onclick=()=>window.open(BACKEND_URL,'_blank');
 
 load();
-
-
-/* =====================================================
-   AUTO CHECK
-
-   每 1 分鐘檢查一次
-   competitions.json
-
-   不會連 PosterTerritory。
-
-   只檢查自己的 JSON
-   有沒有發生變化。
-===================================================== */
-
-let lastSignature = '';
-
-
-async function checkForUpdates(){
-
-  try{
-
-    const response =
-      await fetch(
-        'competitions.json?ts=' +
-        Date.now(),
-        {
-          cache:'no-store'
-        }
-      );
-
-
-    if(!response.ok)
-      return;
-
-
-    const fresh =
-      await response.json();
-
-
-    if(!Array.isArray(fresh))
-      return;
-
-
-    const signature =
-      JSON.stringify(fresh);
-
-
-    /*
-      第一次只建立基準
-    */
-
-    if(!lastSignature){
-
-      lastSignature =
-        signature;
-
-      return;
-
-    }
-
-
-    /*
-      沒有變化
-    */
-
-    if(
-      signature ===
-      lastSignature
-    ){
-
-      return;
-
-    }
-
-
-    /*
-      有新資料
-    */
-
-    lastSignature =
-      signature;
-
-
-    console.log(
-      '偵測到 competitions.json 更新'
-    );
-
-
-    await load();
-
-
-  }
-
-  catch(error){
-
-    console.log(
-      '自動檢查失敗:',
-      error
-    );
-
-  }
-
-}
-
-
-/*
-  每 60 秒檢查
-*/
-
-setInterval(
-  checkForUpdates,
-  60000
-);
-
-
-/*
-  開頁面後 3 秒再檢查一次
-*/
-
-setTimeout(
-  checkForUpdates,
-  3000
-);
-
-
 </script>
-
 </body>
 </html>
