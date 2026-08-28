@@ -1,41 +1,885 @@
-<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>JHENG CHANG CHEN — Poster Competition Tracker</title>
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>JHENG CHANG CHEN — Poster Competition Tracker</title>
+
 <style>
-*{box-sizing:border-box}body{margin:0;background:#fff;color:#111;font-family:Arial,"Noto Sans TC",sans-serif}.wrap{max-width:1120px;margin:auto;padding:28px 18px 60px}
-header{border-bottom:3px solid #111;padding-bottom:14px;margin-bottom:12px}h1{font-size:clamp(28px,5vw,48px);margin:0}.sub{color:#666;margin-top:5px}
-.stats{display:flex;gap:18px;flex-wrap:wrap;margin:18px 0;font-size:14px}.stats b{font-size:18px}.controls{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0 16px}
-button{border:1px solid #bbb;background:#fff;border-radius:8px;padding:9px 12px;font-size:13px;cursor:pointer}button.active{background:#111;color:#fff;border-color:#111}
-.update{margin-left:auto}.table{border-top:2px solid #111}.row{display:grid;grid-template-columns:46px minmax(260px,1fr) 110px 135px 165px;gap:12px;align-items:center;padding:14px 5px;border-bottom:1px solid #ddd}
-.head{background:#f4f4f4;color:#666;font-size:11px;font-weight:700;padding:9px 5px}.title{font-weight:700;font-size:14px;line-height:1.35}.deadline,.resultDate,.result{font-size:12px;white-space:nowrap}.result{font-weight:700}
-.check{width:22px;height:22px;accent-color:#111;cursor:pointer}.resultBtn{width:100%;text-align:left}.pending{color:#777}.green{color:#16833b}.red{color:#c62828}.gold{color:#a56b00}.blue{color:#2457a6}
-.note{font-size:12px;color:#777;margin-top:10px;line-height:1.5}.status{font-size:12px;color:#666;margin:8px 0}.ok{color:#16833b}.warn{color:#a56b00}
-dialog{border:0;border-radius:12px;padding:20px;max-width:420px;width:calc(100% - 30px);box-shadow:0 10px 40px #0003}dialog::backdrop{background:#0005}dialog button{margin-top:6px}.close{float:right}
-@media(max-width:760px){.row{grid-template-columns:40px minmax(180px,1fr) 92px 125px}.statuscol{display:none}}
-</style></head><body><main class="wrap">
-<header><h1>JHENG CHANG CHEN</h1><div class="sub">2026 POSTER COMPETITION TRACKER</div></header>
-<div class="stats"><span>已參加 <b id="joinedCount">0</b></span><span>追蹤中 <b id="trackingCount">0</b></span><span>入選 <b id="selectedCount">0</b></span><span>得獎 <b id="winnerCount">0</b></span></div>
-<div class="controls"><button class="active" data-filter="all">全部</button><button data-filter="joined">我有參加</button><button data-filter="pending">待公布</button><button data-filter="result">已有結果</button><button id="update" class="update">↻ 更新比賽資料</button></div>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #fff;
+  color: #111;
+  font-family: Arial, "Noto Sans TC", sans-serif;
+}
+
+.wrap {
+  max-width: 1120px;
+  margin: auto;
+  padding: 28px 18px 60px;
+}
+
+header {
+  border-bottom: 3px solid #111;
+  padding-bottom: 14px;
+  margin-bottom: 12px;
+}
+
+h1 {
+  font-size: clamp(28px, 5vw, 48px);
+  margin: 0;
+  letter-spacing: -1px;
+}
+
+.sub {
+  color: #666;
+  margin-top: 5px;
+  font-size: 14px;
+}
+
+.stats {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin: 18px 0;
+  font-size: 14px;
+}
+
+.stats b {
+  font-size: 18px;
+}
+
+.controls {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin: 12px 0 16px;
+}
+
+button {
+  border: 1px solid #bbb;
+  background: #fff;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #f5f5f5;
+}
+
+button.active {
+  background: #111;
+  color: #fff;
+  border-color: #111;
+}
+
+.update {
+  margin-left: auto;
+}
+
+.table {
+  border-top: 2px solid #111;
+}
+
+.row {
+  display: grid;
+  grid-template-columns:
+    46px
+    minmax(260px, 1fr)
+    110px
+    135px
+    165px;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 5px;
+  border-bottom: 1px solid #ddd;
+}
+
+.head {
+  background: #f4f4f4;
+  color: #666;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 9px 5px;
+}
+
+.title {
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.deadline,
+.resultDate,
+.result {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.result {
+  font-weight: 700;
+}
+
+.check {
+  width: 22px;
+  height: 22px;
+  accent-color: #111;
+  cursor: pointer;
+}
+
+.resultBtn {
+  width: 100%;
+  text-align: left;
+}
+
+.pending {
+  color: #777;
+}
+
+.green {
+  color: #16833b;
+}
+
+.red {
+  color: #c62828;
+}
+
+.gold {
+  color: #a56b00;
+}
+
+.blue {
+  color: #2457a6;
+}
+
+.note {
+  font-size: 12px;
+  color: #777;
+  margin-top: 10px;
+  line-height: 1.5;
+}
+
+.status {
+  font-size: 12px;
+  color: #666;
+  margin: 8px 0;
+}
+
+.ok {
+  color: #16833b;
+}
+
+.warn {
+  color: #a56b00;
+}
+
+.error {
+  color: #c62828;
+}
+
+.empty {
+  padding: 35px 10px;
+  text-align: center;
+  color: #777;
+  font-size: 14px;
+}
+
+dialog {
+  border: 0;
+  border-radius: 12px;
+  padding: 20px;
+  max-width: 420px;
+  width: calc(100% - 30px);
+  box-shadow: 0 10px 40px #0003;
+}
+
+dialog::backdrop {
+  background: #0005;
+}
+
+dialog button {
+  margin-top: 6px;
+}
+
+.close {
+  float: right;
+  padding: 5px 9px;
+}
+
+@media (max-width: 760px) {
+
+  .wrap {
+    padding: 20px 12px 40px;
+  }
+
+  h1 {
+    font-size: 32px;
+  }
+
+  .update {
+    margin-left: 0;
+  }
+
+  .row {
+    grid-template-columns:
+      40px
+      minmax(180px, 1fr)
+      92px
+      125px;
+  }
+
+  .statuscol {
+    display: none;
+  }
+
+  .head {
+    grid-template-columns:
+      40px
+      minmax(180px, 1fr)
+      92px
+      125px;
+  }
+
+  .title {
+    font-size: 13px;
+  }
+
+  .deadline,
+  .resultDate {
+    font-size: 11px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<main class="wrap">
+
+<header>
+  <h1>JHENG CHANG CHEN</h1>
+  <div class="sub">2026 POSTER COMPETITION TRACKER</div>
+</header>
+
+<div class="stats">
+  <span>已參加 <b id="joinedCount">0</b></span>
+  <span>追蹤中 <b id="trackingCount">0</b></span>
+  <span>入選 <b id="selectedCount">0</b></span>
+  <span>得獎 <b id="winnerCount">0</b></span>
+</div>
+
+<div class="controls">
+
+  <button class="active" data-filter="all">
+    全部
+  </button>
+
+  <button data-filter="joined">
+    我有參加
+  </button>
+
+  <button data-filter="pending">
+    待公布
+  </button>
+
+  <button data-filter="result">
+    已有結果
+  </button>
+
+  <button id="update" class="update">
+    ↻ 更新比賽資料
+  </button>
+
+</div>
+
 <div id="status" class="status"></div>
-<div class="table"><div class="row head"><div>參加</div><div>COMPETITION</div><div>DEADLINE</div><div>RESULT DATE</div><div class="statuscol">我的結果</div></div><div id="list"></div></div>
-<div class="note">「↻ 更新比賽資料」會提醒你到 GitHub Actions 執行一次更新；網站平常不會持續連線 PosterTerritory。你的參加勾選與結果會保存在瀏覽器。</div>
+
+<div class="table">
+
+  <div class="row head">
+
+    <div>參加</div>
+
+    <div>COMPETITION</div>
+
+    <div>DEADLINE</div>
+
+    <div>RESULT DATE</div>
+
+    <div class="statuscol">我的結果</div>
+
+  </div>
+
+  <div id="list"></div>
+
+</div>
+
+<div class="note">
+  「↻ 更新比賽資料」會開啟 GitHub Actions，
+  請手動執行一次更新。更新完成後重新整理本頁即可。
+  你的參加勾選與結果會保存在瀏覽器。
+</div>
+
 </main>
-<dialog id="dlg"><button class="close" id="close">×</button><h3>修改結果</h3>
-<button data-result="pending">🟡 待公布</button><br><button data-result="selected">🟢 入選</button><br><button data-result="honorable">🔵 優選／佳作</button><br><button data-result="winner">🏆 得獎</button><br><button data-result="not_selected">🔴 未入選</button></dialog>
+
+<dialog id="dlg">
+
+  <button class="close" id="close">×</button>
+
+  <h3>修改結果</h3>
+
+  <button data-result="pending">
+    🟡 待公布
+  </button>
+  <br>
+
+  <button data-result="selected">
+    🟢 入選
+  </button>
+  <br>
+
+  <button data-result="honorable">
+    🔵 優選／佳作
+  </button>
+  <br>
+
+  <button data-result="winner">
+    🏆 得獎
+  </button>
+  <br>
+
+  <button data-result="not_selected">
+    🔴 未入選
+  </button>
+
+</dialog>
+
 <script>
-const KEY='jheng-poster-v4';let data=[],filter='all',editing=null;
-async function load(){try{const r=await fetch('competitions.json?'+Date.now());if(!r.ok)throw 0;const fresh=await r.json();const old=JSON.parse(localStorage.getItem(KEY)||'{}');data=fresh.map(x=>{const o=old[x.title]||{};return {...x,participating:!!o.participating,result:o.result||x.result||'pending',resultDate:o.resultDate||x.resultDate||''}});render();document.getElementById('status').innerHTML='<span class="ok">● 已載入最新資料</span>'}catch(e){document.getElementById('status').innerHTML='<span class="warn">目前無法讀取最新資料，請稍後重新整理。</span>'}}
-function persist(){const o={};data.forEach(x=>o[x.title]={participating:x.participating,result:x.result,resultDate:x.resultDate});localStorage.setItem(KEY,JSON.stringify(o))}
-function fmt(d){return d?d.replaceAll('-','/'):'—'}function esc(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-function label(r){return {pending:'🟡 待公布',selected:'🟢 入選',honorable:'🔵 優選／佳作',winner:'🏆 得獎',not_selected:'🔴 未入選'}[r]||'🟡 待公布'}
-function cls(r){return r==='winner'?'gold':r==='selected'?'green':r==='honorable'?'blue':r==='not_selected'?'red':'pending'}
-function render(){let rows=data.filter(x=>filter==='all'||filter==='joined'&&x.participating||filter==='pending'&&x.participating&&x.result==='pending'||filter==='result'&&x.participating&&x.result!=='pending');
-document.getElementById('list').innerHTML=rows.map(x=>`<div class="row"><div><input class="check" type="checkbox" ${x.participating?'checked':''} data-id="${x.title}"></div><div class="title">${esc(x.title)}</div><div class="deadline">${fmt(x.deadline)}</div><div class="resultDate">${fmt(x.resultDate)}</div><div class="statuscol"><button class="resultBtn ${cls(x.result)}" data-result-id="${x.title}">${label(x.result)}</button></div></div>`).join('');
-document.querySelectorAll('.check').forEach(c=>c.onchange=()=>{let x=data.find(a=>a.title===c.dataset.id);x.participating=c.checked;persist();render()});
-document.querySelectorAll('[data-result-id]').forEach(b=>b.onclick=()=>{editing=data.find(x=>x.title===b.dataset.resultId);document.getElementById('dlg').showModal()});
-let j=data.filter(x=>x.participating);joinedCount.textContent=j.length;trackingCount.textContent=j.filter(x=>x.result==='pending').length;selectedCount.textContent=j.filter(x=>['selected','honorable'].includes(x.result)).length;winnerCount.textContent=j.filter(x=>x.result==='winner').length}
-document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.filter;document.querySelectorAll('[data-filter]').forEach(x=>x.classList.remove('active'));b.classList.add('active');render()});
-document.querySelectorAll('[data-result]').forEach(b=>b.onclick=()=>{if(editing){editing.result=b.dataset.result;persist();dlg.close();render()}});
-close.onclick=()=>dlg.close();
-document.getElementById('update').onclick=()=>alert('請到 GitHub → Actions → Update PosterTerritory → Run workflow。更新完成後重新整理本頁即可。');
+
+const STORAGE_KEY = "jheng-poster-v5";
+
+let data = [];
+let filter = "all";
+let editing = null;
+
+
+/* =========================
+   讀取 competitions.json
+========================= */
+
+async function load() {
+
+  const status = document.getElementById("status");
+
+  status.innerHTML =
+    '<span>● 正在讀取最新比賽資料...</span>';
+
+  try {
+
+    const response = await fetch(
+      "competitions.json?cache=" + Date.now(),
+      {
+        cache: "no-store"
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("HTTP " + response.status);
+    }
+
+    const fresh = await response.json();
+
+    if (!Array.isArray(fresh)) {
+      throw new Error("competitions.json 格式錯誤");
+    }
+
+    const old =
+      JSON.parse(
+        localStorage.getItem(STORAGE_KEY) || "{}"
+      );
+
+    data = fresh.map(item => {
+
+      const saved = old[item.title] || {};
+
+      return {
+        ...item,
+
+        participating:
+          typeof saved.participating === "boolean"
+            ? saved.participating
+            : !!item.participating,
+
+        result:
+          saved.result ||
+          item.result ||
+          "pending",
+
+        resultDate:
+          saved.resultDate ||
+          item.resultDate ||
+          ""
+      };
+
+    });
+
+    render();
+
+    status.innerHTML =
+      '<span class="ok">● 已載入最新資料</span>';
+
+  } catch (error) {
+
+    console.error(error);
+
+    status.innerHTML =
+      '<span class="error">● 無法讀取 competitions.json</span>';
+
+    document.getElementById("list").innerHTML =
+      '<div class="empty">目前無法讀取比賽資料，請重新整理頁面。</div>';
+  }
+}
+
+
+/* =========================
+   儲存使用者資料
+========================= */
+
+function persist() {
+
+  const saved = {};
+
+  data.forEach(item => {
+
+    saved[item.title] = {
+
+      participating:
+        !!item.participating,
+
+      result:
+        item.result || "pending",
+
+      resultDate:
+        item.resultDate || ""
+
+    };
+
+  });
+
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify(saved)
+  );
+}
+
+
+/* =========================
+   日期格式
+========================= */
+
+function formatDate(date) {
+
+  if (!date) {
+    return "—";
+  }
+
+  return String(date).replaceAll("-", "/");
+}
+
+
+/* =========================
+   HTML 安全處理
+========================= */
+
+function escapeHTML(value) {
+
+  return String(value ?? "").replace(
+    /[&<>"']/g,
+    char => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;"
+    }[char])
+  );
+}
+
+
+/* =========================
+   結果文字
+========================= */
+
+function resultLabel(result) {
+
+  const labels = {
+
+    pending:
+      "🟡 待公布",
+
+    selected:
+      "🟢 入選",
+
+    honorable:
+      "🔵 優選／佳作",
+
+    winner:
+      "🏆 得獎",
+
+    not_selected:
+      "🔴 未入選"
+
+  };
+
+  return labels[result] || labels.pending;
+}
+
+
+/* =========================
+   結果顏色
+========================= */
+
+function resultClass(result) {
+
+  if (result === "winner") {
+    return "gold";
+  }
+
+  if (result === "selected") {
+    return "green";
+  }
+
+  if (result === "honorable") {
+    return "blue";
+  }
+
+  if (result === "not_selected") {
+    return "red";
+  }
+
+  return "pending";
+}
+
+
+/* =========================
+   篩選
+========================= */
+
+function getFilteredData() {
+
+  return data.filter(item => {
+
+    if (filter === "all") {
+      return true;
+    }
+
+    if (filter === "joined") {
+      return item.participating;
+    }
+
+    if (filter === "pending") {
+      return (
+        item.participating &&
+        item.result === "pending"
+      );
+    }
+
+    if (filter === "result") {
+      return (
+        item.participating &&
+        item.result !== "pending"
+      );
+    }
+
+    return true;
+
+  });
+
+}
+
+
+/* =========================
+   顯示資料
+========================= */
+
+function render() {
+
+  const list =
+    document.getElementById("list");
+
+  const rows =
+    getFilteredData();
+
+  if (rows.length === 0) {
+
+    list.innerHTML =
+      '<div class="empty">目前沒有符合條件的比賽</div>';
+
+  } else {
+
+    list.innerHTML =
+      rows.map(item => `
+
+        <div class="row">
+
+          <div>
+
+            <input
+              class="check"
+              type="checkbox"
+              ${item.participating ? "checked" : ""}
+              data-id="${escapeHTML(item.title)}"
+            >
+
+          </div>
+
+          <div class="title">
+            ${escapeHTML(item.title)}
+          </div>
+
+          <div class="deadline">
+            ${formatDate(item.deadline)}
+          </div>
+
+          <div class="resultDate">
+            ${formatDate(item.resultDate)}
+          </div>
+
+          <div class="statuscol">
+
+            <button
+              class="resultBtn ${resultClass(item.result)}"
+              data-result-id="${escapeHTML(item.title)}"
+            >
+              ${resultLabel(item.result)}
+            </button>
+
+          </div>
+
+        </div>
+
+      `).join("");
+
+  }
+
+
+  /* 參加 checkbox */
+
+  document
+    .querySelectorAll(".check")
+    .forEach(checkbox => {
+
+      checkbox.onchange = () => {
+
+        const item =
+          data.find(
+            x =>
+              x.title ===
+              checkbox.dataset.id
+          );
+
+        if (!item) {
+          return;
+        }
+
+        item.participating =
+          checkbox.checked;
+
+        persist();
+
+        render();
+
+      };
+
+    });
+
+
+  /* 結果按鈕 */
+
+  document
+    .querySelectorAll("[data-result-id]")
+    .forEach(button => {
+
+      button.onclick = () => {
+
+        editing =
+          data.find(
+            x =>
+              x.title ===
+              button.dataset.resultId
+          );
+
+        if (!editing) {
+          return;
+        }
+
+        document
+          .getElementById("dlg")
+          .showModal();
+
+      };
+
+    });
+
+
+  updateStats();
+
+}
+
+
+/* =========================
+   統計數字
+========================= */
+
+function updateStats() {
+
+  const joined =
+    data.filter(
+      item => item.participating
+    );
+
+  const tracking =
+    joined.filter(
+      item => item.result === "pending"
+    );
+
+  const selected =
+    joined.filter(
+      item =>
+        item.result === "selected" ||
+        item.result === "honorable"
+    );
+
+  const winners =
+    joined.filter(
+      item => item.result === "winner"
+    );
+
+
+  document.getElementById(
+    "joinedCount"
+  ).textContent = joined.length;
+
+  document.getElementById(
+    "trackingCount"
+  ).textContent = tracking.length;
+
+  document.getElementById(
+    "selectedCount"
+  ).textContent = selected.length;
+
+  document.getElementById(
+    "winnerCount"
+  ).textContent = winners.length;
+
+}
+
+
+/* =========================
+   篩選按鈕
+========================= */
+
+document
+  .querySelectorAll("[data-filter]")
+  .forEach(button => {
+
+    button.onclick = () => {
+
+      filter =
+        button.dataset.filter;
+
+      document
+        .querySelectorAll("[data-filter]")
+        .forEach(item => {
+
+          item.classList.remove("active");
+
+        });
+
+      button.classList.add("active");
+
+      render();
+
+    };
+
+  });
+
+
+/* =========================
+   修改結果
+========================= */
+
+document
+  .querySelectorAll("[data-result]")
+  .forEach(button => {
+
+    button.onclick = () => {
+
+      if (!editing) {
+        return;
+      }
+
+      editing.result =
+        button.dataset.result;
+
+      persist();
+
+      document
+        .getElementById("dlg")
+        .close();
+
+      render();
+
+    };
+
+  });
+
+
+/* =========================
+   關閉視窗
+========================= */
+
+document
+  .getElementById("close")
+  .onclick = () => {
+
+    document
+      .getElementById("dlg")
+      .close();
+
+  };
+
+
+/* =========================
+   更新比賽資料
+========================= */
+
+document
+  .getElementById("update")
+  .onclick = () => {
+
+    window.open(
+      "https://github.com/jokerui666/poster-competition-tracker/actions/workflows/update-posterterritory.yml",
+      "_blank"
+    );
+
+  };
+
+
+/* =========================
+   啟動
+========================= */
+
 load();
-</script></body></html>
+
+</script>
+
+</body>
+</html>
