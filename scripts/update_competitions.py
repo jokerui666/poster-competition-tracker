@@ -17,7 +17,7 @@ HEADERS = {
 }
 
 TODAY = date.today()
-CURRENT_YEAR = TODAY.year
+
 
 MONTHS = {
     "january": 1,
@@ -33,6 +33,7 @@ MONTHS = {
     "november": 11,
     "december": 12,
 }
+
 
 ROMAN_MONTHS = {
     "I": 1,
@@ -50,10 +51,6 @@ ROMAN_MONTHS = {
 }
 
 
-# =========================================================
-# 文字清理
-# =========================================================
-
 def clean_text(text):
     if not text:
         return ""
@@ -64,34 +61,27 @@ def clean_text(text):
     return text.strip()
 
 
-# =========================================================
-# 日期解析
-# =========================================================
-
 def parse_date(text):
-    if not text:
-        return ""
 
     text = clean_text(text)
 
-    # -----------------------------------------------------
     # August 31, 2026
-    # September 15 2026
-    # -----------------------------------------------------
-
     m = re.search(
-        r"\b("
-        r"January|February|March|April|May|June|July|August|"
-        r"September|October|November|December"
-        r")\s+"
-        r"(\d{1,2})(?:st|nd|rd|th)?"
+        r"\b"
+        r"(January|February|March|April|May|June|July|August|"
+        r"September|October|November|December)"
+        r"\s+"
+        r"(\d{1,2})"
+        r"(?:st|nd|rd|th)?"
         r"(?:,\s*|\s+)"
-        r"(\d{4})\b",
+        r"(\d{4})"
+        r"\b",
         text,
         re.I,
     )
 
     if m:
+
         month = MONTHS[m.group(1).lower()]
         day = int(m.group(2))
         year = int(m.group(3))
@@ -101,23 +91,24 @@ def parse_date(text):
         except ValueError:
             return ""
 
-    # -----------------------------------------------------
-    # 31 August 2026
-    # 15 September 2026
-    # -----------------------------------------------------
 
+    # 31 August 2026
     m = re.search(
         r"\b"
-        r"(\d{1,2})(?:st|nd|rd|th)?\s+"
+        r"(\d{1,2})"
+        r"(?:st|nd|rd|th)?"
+        r"\s+"
         r"(January|February|March|April|May|June|July|August|"
         r"September|October|November|December)"
         r"(?:,\s*|\s+)"
-        r"(\d{4})\b",
+        r"(\d{4})"
+        r"\b",
         text,
         re.I,
     )
 
     if m:
+
         day = int(m.group(1))
         month = MONTHS[m.group(2).lower()]
         year = int(m.group(3))
@@ -127,46 +118,45 @@ def parse_date(text):
         except ValueError:
             return ""
 
-    # -----------------------------------------------------
-    # August 18
-    # September 15
-    #
-    # 如果沒有年份，就使用目前年份。
-    # -----------------------------------------------------
 
+    # August 31  (沒有年份)
     m = re.search(
-        r"\b("
-        r"January|February|March|April|May|June|July|August|"
-        r"September|October|November|December"
-        r")\s+"
-        r"(\d{1,2})(?:st|nd|rd|th)?\b",
+        r"\b"
+        r"(January|February|March|April|May|June|July|August|"
+        r"September|October|November|December)"
+        r"\s+"
+        r"(\d{1,2})"
+        r"(?:st|nd|rd|th)?"
+        r"\b",
         text,
         re.I,
     )
 
     if m:
+
         month = MONTHS[m.group(1).lower()]
         day = int(m.group(2))
 
         try:
-            return date(CURRENT_YEAR, month, day).isoformat()
+            return date(TODAY.year, month, day).isoformat()
         except ValueError:
             return ""
 
-    # -----------------------------------------------------
-    # 15 IX 2026
-    # -----------------------------------------------------
 
+    # 15 IX 2026
     m = re.search(
         r"\b"
         r"(\d{1,2})\s+"
         r"(I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII)"
-        r"\s+(\d{4})\b",
+        r"\s+"
+        r"(\d{4})"
+        r"\b",
         text,
         re.I,
     )
 
     if m:
+
         day = int(m.group(1))
         roman = m.group(2).upper()
         year = int(m.group(3))
@@ -183,247 +173,290 @@ def parse_date(text):
     return ""
 
 
-# =========================================================
-# 從一個比賽區塊取得 Deadline
-# =========================================================
-
 def extract_deadline(text):
 
     text = clean_text(text)
 
-    # 只看 Deadline 後面的內容
-    m = re.search(
-        r"(?:"
-        r"new\s+submission\s+deadline|"
-        r"last\s+deadline|"
-        r"submission\s+deadline|"
-        r"deadline"
-        r")"
-        r"\s*[:\-]?\s*"
-        r"(.{0,120})",
-        text,
-        re.I,
-    )
+    patterns = [
+        r"(?:New submission deadline)\s*[:\-]?\s*(.{0,120})",
+        r"(?:Last deadline)\s*[:\-]?\s*(.{0,120})",
+        r"(?:Deadline)\s*[:\-]?\s*(.{0,120})",
+    ]
 
-    if not m:
-        return ""
+    for pattern in patterns:
 
-    chunk = m.group(1)
+        m = re.search(
+            pattern,
+            text,
+            re.I
+        )
 
-    return parse_date(chunk)
+        if m:
 
+            result = parse_date(
+                m.group(1)
+            )
 
-# =========================================================
-# 取得 URL
-# =========================================================
-
-def get_url_from_block(block):
-
-    for link in block.find_all("a", href=True):
-
-        href = link.get("href", "").strip()
-
-        if (
-            href.startswith("http")
-            and "posterterritory.com" not in href
-        ):
-            return href
-
-    # 如果沒有外部網址，使用 PosterTerritory 自己的文章網址
-    for link in block.find_all("a", href=True):
-
-        href = link.get("href", "").strip()
-
-        if href.startswith("http"):
-            return href
+            if result:
+                return result
 
     return ""
 
 
-# =========================================================
-# 判斷是不是分類標題
-# =========================================================
+def get_title_from_text(text):
 
-def is_excluded_title(title):
+    lines = []
 
-    t = clean_text(title).lower()
+    for line in text.splitlines():
 
-    excluded = [
-        "poster competitions",
-        "design programs and summer schools",
-        "open calls and platforms with no deadline",
-    ]
+        line = clean_text(line)
 
-    if t in excluded:
-        return True
+        if not line:
+            continue
 
-    return False
+        lines.append(line)
+
+    for line in lines:
+
+        lower = line.lower()
+
+        if (
+            "deadline" not in lower
+            and "more" not in lower
+            and len(line) > 4
+        ):
+            return line
+
+    return ""
 
 
-# =========================================================
-# 從頁面取得每一個競賽
-# =========================================================
+def scrape_page(html):
 
-def scrape_competitions(soup):
-
-    items = []
+    soup = BeautifulSoup(
+        html,
+        "html.parser"
+    )
 
     # -----------------------------------------------------
-    # PosterTerritory 目前使用標題元素排列內容
+    # 取得主要內容區
     # -----------------------------------------------------
 
-    headings = soup.find_all(
-        ["h2", "h3", "h4"]
+    main = (
+        soup.find("main")
+        or soup.find(
+            "div",
+            class_=re.compile(
+                r"content|main|entry",
+                re.I
+            )
+        )
+        or soup.body
+    )
+
+    if not main:
+        return []
+
+    # -----------------------------------------------------
+    # 取得所有文字
+    # -----------------------------------------------------
+
+    text = main.get_text(
+        "\n",
+        strip=True
+    )
+
+    text = clean_text(
+        text.replace("\n", " ")
     )
 
     print(
-        "Found headings:",
-        len(headings)
+        "Page text length:",
+        len(text)
     )
 
-    for i, heading in enumerate(headings):
+    # -----------------------------------------------------
+    # 以 Deadline 當作每筆資料的中心
+    # -----------------------------------------------------
 
-        title = clean_text(
-            heading.get_text(
-                " ",
-                strip=True
-            )
+    matches = list(
+        re.finditer(
+            r"(?:New submission deadline|"
+            r"Last deadline|"
+            r"Deadline)"
+            r"\s*[:\-]?",
+            text,
+            re.I
+        )
+    )
+
+    print(
+        "Deadline markers:",
+        len(matches)
+    )
+
+    items = []
+
+    for i, match in enumerate(matches):
+
+        start = max(
+            0,
+            match.start() - 600
         )
 
-        if not title:
-            continue
-
-        if is_excluded_title(title):
-            continue
-
-        # -------------------------------------------------
-        # 往後收集內容
-        # 直到下一個標題
-        # -------------------------------------------------
-
-        parts = []
-
-        current = heading
-
-        while True:
-
-            current = current.find_next()
-
-            if not current:
-                break
-
-            # 遇到下一個標題
-            if (
-                current.name in
-                ["h1", "h2", "h3", "h4"]
-            ):
-                break
-
-            text = clean_text(
-                current.get_text(
-                    " ",
-                    strip=True
-                )
-            )
-
-            if text:
-                parts.append(text)
-
-            # 防止一次跑太遠
-            if len(parts) > 30:
-                break
-
-        block_text = clean_text(
-            title + " " + " ".join(parts)
+        end = min(
+            len(text),
+            match.end() + 180
         )
 
-        # -------------------------------------------------
-        # 必須有 Deadline
-        # -------------------------------------------------
-
-        if "deadline" not in block_text.lower():
-            continue
+        chunk = text[start:end]
 
         deadline = extract_deadline(
-            block_text
+            chunk
         )
 
         if not deadline:
-            print(
-                "No deadline:",
-                title
-            )
             continue
 
-        # -------------------------------------------------
-        # 排除已經過期的比賽
-        # -------------------------------------------------
-
         try:
-            deadline_date = date.fromisoformat(
+            d = date.fromisoformat(
                 deadline
             )
         except ValueError:
             continue
 
-        if deadline_date < TODAY:
-            print(
-                "Expired:",
-                title,
-                deadline
-            )
+        if d < TODAY:
             continue
 
         # -------------------------------------------------
-        # 找這個標題後面的連結
+        # 從 Deadline 前面尋找標題
         # -------------------------------------------------
 
-        links = []
+        before = text[
+            start:match.start()
+        ]
 
-        current = heading
-
-        for _ in range(20):
-
-            current = current.find_next()
-
-            if not current:
-                break
-
-            if current.name in [
-                "h1",
-                "h2",
-                "h3",
-                "h4"
-            ]:
-                break
-
-            if current.name == "a":
-                href = current.get(
-                    "href",
-                    ""
-                ).strip()
-
-                if href.startswith("http"):
-                    links.append(href)
-
-        if not links:
-            print(
-                "No URL:",
-                title
+        before_parts = [
+            clean_text(x)
+            for x in re.split(
+                r"\s{2,}|(?=[A-Z“\"])",
+                before
             )
+            if clean_text(x)
+        ]
+
+        title = ""
+
+        # 先找最接近 Deadline 的合理文字
+        words = before.split()
+
+        if words:
+
+            # 從後往前找一個合理長度的標題
+            candidate = ""
+
+            for j in range(
+                max(0, len(words) - 20),
+                len(words)
+            ):
+
+                candidate += (
+                    (" " if candidate else "")
+                    + words[j]
+                )
+
+            candidate = clean_text(
+                candidate
+            )
+
+            if candidate:
+                title = candidate
+
+        # -------------------------------------------------
+        # 如果上面抓得太長，再從附近文字判斷
+        # -------------------------------------------------
+
+        if len(title) > 180:
+
+            title = title[-180:]
+
+            if "More" in title:
+
+                title = title.split(
+                    "More"
+                )[-1].strip()
+
+        # -------------------------------------------------
+        # 清理常見雜訊
+        # -------------------------------------------------
+
+        title = re.sub(
+            r"^(Categories?:.*?)(?=[A-Z])",
+            "",
+            title,
+            flags=re.I
+        )
+
+        title = clean_text(
+            title
+        )
+
+        if not title:
             continue
 
         # -------------------------------------------------
-        # 優先選 More 連結
+        # 找附近的網址
         # -------------------------------------------------
 
-        url = links[0]
+        url = ""
+
+        for link in main.find_all(
+            "a",
+            href=True
+        ):
+
+            href = link.get(
+                "href",
+                ""
+            ).strip()
+
+            link_text = clean_text(
+                link.get_text(
+                    " ",
+                    strip=True
+                )
+            )
+
+            if (
+                link_text.lower()
+                == "more"
+                and href.startswith("http")
+            ):
+                url = href
+                break
+
+        # -------------------------------------------------
+        # 去除明顯不是比賽的標題
+        # -------------------------------------------------
+
+        bad_titles = [
+            "poster competitions",
+            "design programs",
+            "summer schools",
+            "open calls",
+            "platforms",
+        ]
+
+        if any(
+            x in title.lower()
+            for x in bad_titles
+        ):
+            continue
 
         # -------------------------------------------------
         # 去重
         # -------------------------------------------------
 
-        duplicate = False
+        exists = False
 
         for old in items:
 
@@ -431,10 +464,10 @@ def scrape_competitions(soup):
                 old["title"].lower()
                 == title.lower()
             ):
-                duplicate = True
+                exists = True
                 break
 
-        if duplicate:
+        if exists:
             continue
 
         items.append(
@@ -451,10 +484,6 @@ def scrape_competitions(soup):
     return items
 
 
-# =========================================================
-# 主程式
-# =========================================================
-
 def main():
 
     print(
@@ -469,13 +498,18 @@ def main():
 
     response.raise_for_status()
 
-    soup = BeautifulSoup(
-        response.text,
-        "html.parser"
+    print(
+        "HTTP status:",
+        response.status_code
     )
 
-    items = scrape_competitions(
-        soup
+    print(
+        "Downloaded bytes:",
+        len(response.content)
+    )
+
+    items = scrape_page(
+        response.text
     )
 
     print(
@@ -495,7 +529,7 @@ def main():
         )
 
     # -----------------------------------------------------
-    # 讀取原本資料
+    # 讀取舊資料
     # -----------------------------------------------------
 
     old = []
@@ -536,7 +570,7 @@ def main():
             ] = item
 
     # -----------------------------------------------------
-    # 保留參賽 / 結果資料
+    # 保留參賽狀態
     # -----------------------------------------------------
 
     for item in items:
@@ -563,7 +597,7 @@ def main():
             )
 
     # -----------------------------------------------------
-    # 依截止日期排序
+    # 日期排序
     # -----------------------------------------------------
 
     items.sort(
@@ -574,7 +608,7 @@ def main():
     )
 
     # -----------------------------------------------------
-    # 寫入 competitions.json
+    # 寫入 JSON
     # -----------------------------------------------------
 
     with open(
@@ -592,6 +626,7 @@ def main():
 
         f.write("\n")
 
+    print("")
     print(
         "Updated",
         len(items),
@@ -599,7 +634,9 @@ def main():
     )
 
     print("")
-    print("========== RESULTS ==========")
+    print(
+        "========== RESULTS =========="
+    )
 
     for item in items:
 
