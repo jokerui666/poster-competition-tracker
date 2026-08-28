@@ -51,12 +51,10 @@ def parse_date(text):
         r"\b"
         r"(January|February|March|April|May|June|July|August|"
         r"September|October|November|December)"
-        r"\s+"
-        r"(\d{1,2})"
+        r"\s+(\d{1,2})"
         r"(?:st|nd|rd|th)?"
         r"(?:,\s*|\s+)"
-        r"(\d{4})"
-        r"\b",
+        r"(\d{4})\b",
 
         r"\b"
         r"(\d{1,2})"
@@ -65,8 +63,7 @@ def parse_date(text):
         r"(January|February|March|April|May|June|July|August|"
         r"September|October|November|December)"
         r"(?:,\s*|\s+)"
-        r"(\d{4})"
-        r"\b",
+        r"(\d{4})\b",
     ]
 
     for index, pattern in enumerate(patterns):
@@ -104,17 +101,7 @@ def parse_date(text):
 
 def clean_title(title):
     """
-    清理 PosterTerritory 頁面抓到的標題。
-
-    例如：
-
-    The Hiiibrand International Brand & Communication Design Awards
-    Brand Awards and Design Awards. Last Deadline: August 31, 2026
-
-    →
-
-    The Hiiibrand International Brand & Communication Design Awards
-
+    清理 PosterTerritory 標題中的網站雜訊。
     """
 
     title = clean_text(title)
@@ -123,49 +110,69 @@ def clean_title(title):
         return ""
 
 
-    # -------------------------------------------------
+    # ---------------------------------------------
     # 移除 Categories 後面的分類資訊
-    # -------------------------------------------------
+    # ---------------------------------------------
 
     title = re.split(
         r"\bCategories\s*:",
         title,
+        maxsplit=1,
         flags=re.IGNORECASE
     )[0]
 
 
-    # -------------------------------------------------
-    # 移除 Last Deadline / Deadline 後面的內容
-    # -------------------------------------------------
+    # ---------------------------------------------
+    # 移除 Last Deadline 後面的內容
+    # ---------------------------------------------
 
     title = re.split(
         r"\bLast\s+Deadline\b",
         title,
+        maxsplit=1,
         flags=re.IGNORECASE
     )[0]
+
+
+    # ---------------------------------------------
+    # 移除 Deadline 後面的內容
+    # ---------------------------------------------
 
     title = re.split(
         r"\bDeadline\b",
         title,
+        maxsplit=1,
         flags=re.IGNORECASE
     )[0]
 
 
-    # -------------------------------------------------
-    # 某些頁面會把宣傳文字接在標題後面
-    # -------------------------------------------------
+    # ---------------------------------------------
+    # 移除 Brand Awards and Design Awards
+    # ---------------------------------------------
 
     title = re.sub(
-        r"\s+Brand Awards and Design Awards\.?$",
+        r"\s+Brand Awards and Design Awards\.?",
         "",
         title,
         flags=re.IGNORECASE
     )
 
 
-    # -------------------------------------------------
-    # 去除尾端標點
-    # -------------------------------------------------
+    # ---------------------------------------------
+    # 移除最後單獨出現的 Last
+    # ---------------------------------------------
+
+    title = re.sub(
+        r"\s+\bLast\b\s*$",
+        "",
+        title,
+        flags=re.IGNORECASE
+    )
+
+
+    # ---------------------------------------------
+    # 移除最後的標點符號
+    # ---------------------------------------------
 
     title = title.strip(
         " \t\r\n-–—:;,.|"
@@ -180,8 +187,6 @@ def is_noise(text):
     if not text:
         return True
 
-    lower = text.lower()
-
     noise = {
         "more",
         "read more",
@@ -194,17 +199,10 @@ def is_noise(text):
         "learn more",
     }
 
-    if lower in noise:
-        return True
-
-    return False
+    return text.lower() in noise
 
 
 def extract_competitions(soup):
-
-    # -------------------------------------------------
-    # 按照網頁實際出現順序掃描
-    # -------------------------------------------------
 
     elements = soup.find_all(
         [
@@ -240,9 +238,9 @@ def extract_competitions(soup):
             continue
 
 
-        # =================================================
+        # =============================================
         # More 連結
-        # =================================================
+        # =============================================
 
         if element.name == "a":
 
@@ -265,7 +263,6 @@ def extract_competitions(soup):
             if not pending_deadline:
                 continue
 
-
             title = clean_title(
                 pending_title
             )
@@ -275,7 +272,6 @@ def extract_competitions(soup):
                 pending_deadline = ""
                 continue
 
-
             item = {
                 "title": title,
                 "deadline": pending_deadline,
@@ -284,11 +280,6 @@ def extract_competitions(soup):
                 "result": "pending",
                 "url": url,
             }
-
-
-            # -------------------------------------------------
-            # 避免重複
-            # -------------------------------------------------
 
             duplicate = False
 
@@ -304,7 +295,6 @@ def extract_competitions(soup):
                 ):
                     duplicate = True
                     break
-
 
             if not duplicate:
 
@@ -331,16 +321,15 @@ def extract_competitions(soup):
 
                 print("")
 
-
             pending_title = ""
             pending_deadline = ""
 
             continue
 
 
-        # =================================================
+        # =============================================
         # Deadline
-        # =================================================
+        # =============================================
 
         if re.search(
             r"\bdeadline\b",
@@ -356,7 +345,6 @@ def extract_competitions(soup):
 
                 pending_deadline = deadline
 
-                # 如果同一個文字區塊本身有標題
                 title_part = re.split(
                     r"\bDeadline\b",
                     text,
@@ -374,16 +362,15 @@ def extract_competitions(soup):
                 continue
 
 
-        # =================================================
-        # 標題 / 文字區塊
-        # =================================================
+        # =============================================
+        # 標題
+        # =============================================
 
         if not pending_deadline:
 
             if is_noise(text):
                 continue
 
-            # 太長的導航 / 整頁文字通常不是標題
             if len(text) > 300:
                 continue
 
@@ -543,26 +530,15 @@ def main():
 
     print("")
 
-
-    # -------------------------------------------------
-    # 抓取
-    # -------------------------------------------------
-
     competitions = extract_competitions(
         soup
     )
-
 
     print("")
     print(
         "Parsed competitions:",
         len(competitions)
     )
-
-
-    # -------------------------------------------------
-    # 只留下今天以後的競賽
-    # -------------------------------------------------
 
     today = date.today()
 
@@ -581,13 +557,7 @@ def main():
         if deadline >= today:
             future.append(item)
 
-
     competitions = future
-
-
-    # -------------------------------------------------
-    # 排序
-    # -------------------------------------------------
 
     competitions.sort(
         key=lambda item: (
@@ -596,19 +566,14 @@ def main():
         )
     )
 
-
     print(
         "Future competitions:",
         len(competitions)
     )
 
-
-    # -------------------------------------------------
+    # ---------------------------------------------
     # 安全保護
-    #
-    # 如果網站結構突然改變，
-    # 不要把原本 JSON 清空。
-    # -------------------------------------------------
+    # ---------------------------------------------
 
     if len(competitions) < 3:
 
@@ -622,11 +587,6 @@ def main():
 
         raise SystemExit(1)
 
-
-    # -------------------------------------------------
-    # 保留使用者原本的參加 / 結果資料
-    # -------------------------------------------------
-
     old_data = load_old_data()
 
     preserve_old_user_data(
@@ -634,15 +594,9 @@ def main():
         old_data
     )
 
-
-    # -------------------------------------------------
-    # 寫入 JSON
-    # -------------------------------------------------
-
     save_json(
         competitions
     )
-
 
     print("")
     print(
@@ -663,7 +617,6 @@ def main():
     )
 
     print("")
-
 
     for number, item in enumerate(
         competitions,
