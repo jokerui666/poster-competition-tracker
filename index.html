@@ -1321,17 +1321,41 @@ async function setCloudHidden(
   hidden
 ){
 
-  if(
-    !currentUser ||
-    !cloudSyncReady
-  )
-    return false;
+  if(!currentUser){
+
+    return {
+      ok:false,
+      message:'尚未登入 Supabase。'
+    };
+
+  }
+
+  if(!cloudSyncReady){
+
+    await loadCloudState();
+
+  }
+
+  if(!cloudSyncReady){
+
+    return {
+      ok:false,
+      message:'無法連線到 Supabase。'
+    };
+
+  }
 
   const key =
     normalizeIgnoreKey(item);
 
-  if(!key)
-    return false;
+  if(!key){
+
+    return {
+      ok:false,
+      message:'找不到這筆比賽的識別網址。'
+    };
+
+  }
 
   const existing =
     cloudState.get(key) || {};
@@ -1379,7 +1403,16 @@ async function setCloudHidden(
       error
     );
 
-    return false;
+    return {
+      ok:false,
+      message:
+        `${error.message || 'Supabase 寫入失敗'}`
+        + (
+          error.code
+            ? ` (code ${error.code})`
+            : ''
+        )
+    };
 
   }
 
@@ -1401,7 +1434,10 @@ async function setCloudHidden(
 
   }
 
-  return true;
+  return {
+    ok:true,
+    message:''
+  };
 
 }
 
@@ -1966,21 +2002,31 @@ async function handleDeleteClick(event){
     item
   );
 
-  /* Directly remove the exact visible row. */
+  /*
+    Remove the exact row from the DOM immediately.
+    Do not call render() here.
+  */
   const row =
     button.closest('.row');
 
   if(row){
+
     row.remove();
+
   }
 
-  /* Remove it from the active in-memory data set. */
+  /*
+    Remove it from the current in-memory list.
+  */
   data =
     data.filter(
       x =>
         normalizeIgnoreKey(x) !== key
     );
 
+  /*
+    Sync to Supabase after the visual removal.
+  */
   if(currentUser){
 
     const cloudResult =
@@ -1997,8 +2043,8 @@ async function handleDeleteClick(event){
       );
 
       window.alert(
-        '這筆比賽已從目前畫面刪除，\\n' +
-        '但雲端同步尚未完成：\\n\\n' +
+        '這筆比賽已從目前畫面刪除。\n' +
+        '但雲端同步尚未完成：\n\n' +
         cloudResult.message
       );
 
@@ -2359,6 +2405,16 @@ function render(){
     ).length;
 
 }
+
+
+/* =====================================================
+   DELETE CLICK DELEGATION
+===================================================== */
+
+list.addEventListener(
+  'click',
+  handleDeleteClick
+);
 
 
 /* =====================================================
