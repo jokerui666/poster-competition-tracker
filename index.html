@@ -315,8 +315,51 @@ button.active{
 
 
 /* =====================================================
+   DELETE
+===================================================== */
+
+.deleteBtn{
+
+  border:1px solid #ccc;
+
+  background:#fff;
+
+  color:#777;
+
+  border-radius:8px;
+
+  padding:4px 9px;
+
+  font-size:15px;
+
+  line-height:1;
+
+  cursor:pointer;
+
+  width:auto;
+
+}
+
+.deleteBtn:hover{
+
+  color:#111;
+
+  border-color:#999;
+
+}
+
+
+.restoreHidden{
+
+  margin-left:6px;
+
+}
+
+
+/* =====================================================
    EMPTY
 ===================================================== */
+
 
 .empty{
   padding:35px 10px;
@@ -552,6 +595,15 @@ dialog button{
 
   </button>
 
+
+  <button
+    id="restoreHidden"
+    class="restoreHidden">
+
+    ↶ 恢復已刪除
+
+  </button>
+
 </div>
 
 
@@ -658,6 +710,11 @@ dialog button{
   「⚙ 後台更新資料」會開啟 GitHub Actions，
   執行 PosterTerritory 資料更新。
 
+  <br>
+
+  每筆比賽右側「×」可將項目從本機 Tracker 隱藏；
+  「↶ 恢復已刪除」可以恢復。
+
 </div>
 
 
@@ -741,6 +798,9 @@ dialog button{
 const KEY =
   'jheng-poster-v8';
 
+const HIDDEN_KEY =
+  'jheng-poster-hidden-v1';
+
 
 const BACKEND_URL =
   'https://github.com/jokerui666/poster-competition-tracker/actions/workflows/update-posterterritory.yml';
@@ -754,8 +814,119 @@ let editing = null;
 
 
 /* =====================================================
+   HIDDEN / DELETED COMPETITIONS
+===================================================== */
+
+function normalizeIgnoreKey(item){
+
+  return String(
+    (item && (
+      item.sourceUrl ||
+      item.url ||
+      item.title
+    )) || ''
+  )
+    .split('#')[0]
+    .replace(/\/+$/, '')
+    .toLowerCase();
+
+}
+
+
+function getHiddenKeys(){
+
+  try{
+
+    const saved =
+      JSON.parse(
+        localStorage.getItem(
+          HIDDEN_KEY
+        ) || '[]'
+      );
+
+    return new Set(
+      Array.isArray(saved)
+        ? saved
+        : []
+    );
+
+  }
+
+  catch(error){
+
+    console.error(
+      'Hidden list error:',
+      error
+    );
+
+    return new Set();
+
+  }
+
+}
+
+
+function saveHiddenKeys(keys){
+
+  localStorage.setItem(
+    HIDDEN_KEY,
+    JSON.stringify(
+      Array.from(keys)
+    )
+  );
+
+}
+
+
+function isHidden(item){
+
+  return getHiddenKeys().has(
+    normalizeIgnoreKey(item)
+  );
+
+}
+
+
+function hideCompetition(item){
+
+  const key =
+    normalizeIgnoreKey(item);
+
+  if(!key)
+    return;
+
+  const keys =
+    getHiddenKeys();
+
+  keys.add(key);
+
+  saveHiddenKeys(keys);
+
+}
+
+
+function restoreCompetition(item){
+
+  const key =
+    normalizeIgnoreKey(item);
+
+  if(!key)
+    return;
+
+  const keys =
+    getHiddenKeys();
+
+  keys.delete(key);
+
+  saveHiddenKeys(keys);
+
+}
+
+
+/* =====================================================
    DOM
 ===================================================== */
+
 
 const list =
   document.getElementById(
@@ -799,6 +970,18 @@ const dlg =
 
 function fmt(date){
 
+function sortDate(value){
+
+  if(!value){
+    return new Date(0);
+  }
+
+  return new Date(
+    String(value).replace(/\*$/, '')
+  );
+
+}
+
   if(!date){
     return '—';
   }
@@ -812,16 +995,15 @@ function fmt(date){
 
 }
 
-
-function sortDate(value){
-
-  if(!value){
-    return new Date(0);
+  if(!date){
+    return '—';
   }
 
-  return new Date(
-    String(value).replace(/\*$/, '')
-  );
+  return String(date)
+    .replaceAll(
+      '-',
+      '/'
+    );
 
 }
 
@@ -1190,6 +1372,9 @@ function render(){
   const rows =
     data.filter(item => {
 
+      if(isHidden(item))
+        return false;
+
       if(filter === 'all')
         return true;
 
@@ -1382,6 +1567,25 @@ function render(){
           </div>
 
 
+          <!-- DELETE / HIDE -->
+
+          <div>
+
+            <button
+              class="deleteBtn"
+              type="button"
+              data-delete-id="${esc(normalizeIgnoreKey(item))}"
+              title="刪除這筆比賽"
+              aria-label="刪除這筆比賽"
+            >
+
+              ×
+
+            </button>
+
+          </div>
+
+
         </div>
 
         `;
@@ -1419,6 +1623,46 @@ function render(){
 
         persist();
 
+
+        render();
+
+      };
+
+    });
+
+
+  /* ===================================================
+     DELETE / HIDE BUTTON
+  =================================================== */
+
+  document
+    .querySelectorAll(
+      '[data-delete-id]'
+    )
+    .forEach(button => {
+
+      button.onclick = () => {
+
+        const item =
+          data.find(
+            x =>
+              normalizeIgnoreKey(x) ===
+              button.dataset.deleteId
+          );
+
+        if(!item)
+          return;
+
+        const ok =
+          window.confirm(
+            `確定要刪除「${item.title}」嗎？\n\n` +
+            `刪除後這筆比賽將不再顯示。`
+          );
+
+        if(!ok)
+          return;
+
+        hideCompetition(item);
 
         render();
 
@@ -1600,6 +1844,91 @@ document
   .onclick = () => {
 
     dlg.close();
+
+  };
+
+
+/* =====================================================
+   RESTORE HIDDEN
+===================================================== */
+
+document
+  .getElementById(
+    'restoreHidden'
+  )
+  .onclick = () => {
+
+    const keys =
+      getHiddenKeys();
+
+    if(keys.size === 0){
+
+      window.alert(
+        '目前沒有已刪除的比賽。'
+      );
+
+      return;
+
+    }
+
+    const hiddenItems =
+      data.filter(
+        item =>
+          keys.has(
+            normalizeIgnoreKey(item)
+          )
+      );
+
+    if(hiddenItems.length === 0){
+
+      window.alert(
+        '目前頁面資料中沒有可恢復的已刪除項目。'
+      );
+
+      return;
+
+    }
+
+    const message =
+      hiddenItems
+        .map(
+          (item, index) =>
+            `${index + 1}. ${item.title}`
+        )
+        .join('\\n') +
+      '\\n\\n輸入編號即可恢復；輸入 0 取消。';
+
+    const answer =
+      window.prompt(
+        message,
+        '0'
+      );
+
+    if(answer === null)
+      return;
+
+    const index =
+      Number(answer);
+
+    if(!Number.isInteger(index) ||
+       index < 1 ||
+       index > hiddenItems.length){
+
+      if(index !== 0){
+        window.alert(
+          '輸入的編號無效。'
+        );
+      }
+
+      return;
+
+    }
+
+    restoreCompetition(
+      hiddenItems[index - 1]
+    );
+
+    render();
 
   };
 
