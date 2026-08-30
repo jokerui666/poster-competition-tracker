@@ -1002,6 +1002,46 @@ let cloudSyncReady = false;
    HIDDEN / DELETED COMPETITIONS + CLOUD SYNC
 ===================================================== */
 
+function hideCompetition(item){
+
+  const key =
+    normalizeIgnoreKey(item);
+
+  if(!key)
+    return;
+
+  const keys =
+    localHiddenKeys();
+
+  keys.add(key);
+
+  saveLocalHiddenKeys(
+    keys
+  );
+
+}
+
+
+function restoreCompetition(item){
+
+  const key =
+    normalizeIgnoreKey(item);
+
+  if(!key)
+    return;
+
+  const keys =
+    localHiddenKeys();
+
+  keys.delete(key);
+
+  saveLocalHiddenKeys(
+    keys
+  );
+
+}
+
+
 function normalizeIgnoreKey(item){
 
   return String(
@@ -1928,24 +1968,13 @@ async function handleDeleteClick(event){
     item
   );
 
-  /*
-    Remove the exact clicked row directly from the DOM.
-    Do not call render() here.
-  */
-  const row =
-    button.closest('.row');
-
-  if(row){
-
-    row.remove();
-
-  }
-
   data =
     data.filter(
       x =>
         normalizeIgnoreKey(x) !== key
     );
+
+  render();
 
   if(currentUser){
 
