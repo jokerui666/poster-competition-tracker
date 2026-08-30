@@ -738,17 +738,15 @@ def find_publication_date(text):
 
 def find_deadline(text):
     """
-    找比賽截止日期。
+    Parse a real Deadline from text.
 
-    重要原則：
-    1. 優先且嚴格解析 Deadline / Last Deadline / Submission Deadline
-       等關鍵字「後面」的日期。
-    2. 支援完整月份與英文縮寫，例如 September / Sep / Sept。
-    3. 如果文章明確有 Deadline 關鍵字但關鍵字後沒有可解析日期，
-       不用文章發布日期或其他無關日期冒充 Deadline。
-    4. 只有完全沒有 Deadline 類關鍵字時，才退回整篇文字搜尋。
+    Rules:
+    - Prefer dates immediately following a Deadline-like keyword.
+    - Support full month names, abbreviations, and yearless dates such as
+      "Deadline: August 31" (interpreted as 2026).
+    - A clearly stated old year (e.g. 2016) is never promoted to 2026.
+    - Never use an unrelated publication date as a Deadline.
     """
-
     text = clean_text(text)
 
     deadline_patterns = [
@@ -760,100 +758,113 @@ def find_deadline(text):
         r"submit",
     ]
 
-    date_patterns = [
-        re.compile(r"\b(2026|2027)[-/](\d{1,2})[-/](\d{1,2})\b"),
+    month_pattern = (
+        r"January|Jan|February|Feb|March|Mar|April|Apr|May|"
+        r"June|Jun|July|Jul|August|Aug|September|Sep|Sept|"
+        r"October|Oct|November|Nov|December|Dec"
+    )
+
+    full_date_patterns = [
         re.compile(
-            r"\b(January|Jan|February|Feb|March|Mar|April|Apr|May|June|Jun|"
-            r"July|Jul|August|Aug|September|Sep|Sept|October|Oct|"
-            r"November|Nov|December|Dec)\s+(\d{1,2})(?:st|nd|rd|th)?"
-            r"(?:,\s*|\s+)(2026|2027)\b", re.I
+            r"\b(2026|2027)[-/](\d{1,2})[-/](\d{1,2})\b",
+            re.IGNORECASE,
         ),
         re.compile(
-            r"\b(\d{1,2})(?:st|nd|rd|th)?\s+"
-            r"(January|Jan|February|Feb|March|Mar|April|Apr|May|June|Jun|"
-            r"July|Jul|August|Aug|September|Sep|Sept|October|Oct|"
-            r"November|Nov|December|Dec)(?:,\s*|\s+)(2026|2027)\b", re.I
+            rf"\b({month_pattern})\s+(\d{{1,2}})(?:st|nd|rd|th)?"
+            r"(?:,\s*|\s+)(2026|2027)\b",
+            re.IGNORECASE,
         ),
         re.compile(
-            r"\b(January|Jan|February|Feb|March|Mar|April|Apr|May|June|Jun|"
-            r"July|Jul|August|Aug|September|Sep|Sept|October|Oct|"
-            r"November|Nov|December|Dec)\s+(\d{1,2})(?:st|nd|rd|th)?\b", re.I
-        ),
-        re.compile(
-            r"\b(\d{1,2})(?:st|nd|rd|th)?\s+"
-            r"(January|Jan|February|Feb|March|Mar|April|Apr|May|June|Jun|"
-            r"July|Jul|August|Aug|September|Sep|Sept|October|Oct|"
-            r"November|Nov|December|Dec)\b", re.I
+            rf"\b(\d{{1,2}})(?:st|nd|rd|th)?\s+({month_pattern})"
+            r"(?:,\s*|\s+)(2026|2027)\b",
+            re.IGNORECASE,
         ),
     ]
 
-    def parse_date_from_chunk(chunk):
+    yearless_patterns = [
+        re.compile(
+            rf"\b({month_pattern})\s+(\d{{1,2}})(?:st|nd|rd|th)?\b",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            rf"\b(\d{{1,2}})(?:st|nd|rd|th)?\s+({month_pattern})\b",
+            re.IGNORECASE,
+        ),
+    ]
+
+    def parse_chunk(chunk):
         candidates = []
 
-        for pattern in date_patterns:
+        for pattern in full_date_patterns:
             for match in pattern.finditer(chunk):
                 try:
                     groups = match.groups()
-
-                    if match.lastindex == 3:
-                        if groups[0].isdigit() and len(groups[0]) == 4:
-                            parsed = date(
-                                int(groups[0]),
-                                int(groups[1]),
-                                int(groups[2]),
-                            )
-                        elif groups[0].isdigit():
-                            parsed = date(
-                                int(groups[2]),
-                                MONTHS[groups[1].lower()],
-                                int(groups[0]),
-                            )
-                        else:
-                            parsed = date(
-                                int(groups[2]),
-                                MONTHS[groups[0].lower()],
-                                int(groups[1]),
-                            )
+                    if groups[0].isdigit() and len(groups[0]) == 4:
+                        parsed = date(
+                            int(groups[0]),
+                            int(groups[1]),
+                            int(groups[2]),
+                        )
+                    elif groups[0].isdigit():
+                        parsed = date(
+                            int(groups[2]),
+                            MONTHS[groups[1].lower()],
+                            int(groups[0]),
+                        )
                     else:
-                        if groups[0].isdigit():
-                            parsed = date(
-                                2026,
-                                MONTHS[groups[1].lower()],
-                                int(groups[0]),
-                            )
-                        else:
-                            parsed = date(
-                                2026,
-                                MONTHS[groups[0].lower()],
-                                int(groups[1]),
-                            )
-
+                        parsed = date(
+                            int(groups[2]),
+                            MONTHS[groups[0].lower()],
+                            int(groups[1]),
+                        )
                     candidates.append((match.start(), parsed))
+                except (ValueError, KeyError):
+                    continue
 
+        # Explicit yearless date. Only infer 2026 when an explicit year is
+        # NOT immediately attached to the date. "August 31, 2016" therefore
+        # cannot fall through into the yearless rule.
+        for pattern in yearless_patterns:
+            for match in pattern.finditer(chunk):
+                following = chunk[match.end():match.end() + 12]
+                if re.match(r"\s*,?\s*(?:19|20)\d{2}\b", following):
+                    continue
+                try:
+                    groups = match.groups()
+                    if groups[0].isdigit():
+                        parsed = date(
+                            2026,
+                            MONTHS[groups[1].lower()],
+                            int(groups[0]),
+                        )
+                    else:
+                        parsed = date(
+                            2026,
+                            MONTHS[groups[0].lower()],
+                            int(groups[1]),
+                        )
+                    candidates.append((match.start(), parsed))
                 except (ValueError, KeyError):
                     continue
 
         if candidates:
-            # The first date after the Deadline keyword wins.
             candidates.sort(key=lambda item: item[0])
             return candidates[0][1]
 
         roman = parse_roman_date(chunk)
         return roman if roman else None
 
-    found_deadline_keyword = False
-
-    # 只解析關鍵字後面的區域，避免抓到文章發布日期。
+    # Search only after Deadline-like keywords.
     for pattern in deadline_patterns:
         for match in re.finditer(pattern, text, flags=re.IGNORECASE):
-            found_deadline_keyword = True
-            chunk = text[match.end():match.end() + 140]
-            result = parse_date_from_chunk(chunk)
+            chunk = text[match.end():match.end() + 160]
+            result = parse_chunk(chunk)
+
+            # If a deadline keyword exists but only an explicitly invalid
+            # old year follows it, do not let a later publication date win.
             if result:
                 return result
 
-    # 沒有 Deadline 類關鍵字時，不用文章中的其他日期冒充截止日。
-    # 例如文章發布日 August 28, 2026 不得被當成 Deadline。
     return None
 
 
@@ -1162,6 +1173,137 @@ def extract_posts(
 
 
 # ============================================================
+# Poster Competitions 專頁解析
+# ============================================================
+
+def extract_competition_catalog(soup):
+    """
+    Extract curated competition entries from PosterTerritory's
+    /poster-competitions/ page.
+
+    The page currently renders each entry with a title/description,
+    optional Deadline text, and a "More" link to the organizer.
+    We use the block around each "More" link and keep the first
+    meaningful line as the competition title.
+    """
+    results = []
+    seen = set()
+
+    for anchor in soup.find_all("a", href=True):
+        label = clean_text(anchor.get_text(" ", strip=True)).lower()
+
+        if label != "more":
+            continue
+
+        # Walk up a few levels to find the smallest useful content block.
+        container = anchor
+        best_text = ""
+        for _ in range(4):
+            container = container.parent
+            if not container:
+                break
+
+            candidate = clean_text(
+                container.get_text("\n", strip=True)
+            )
+
+            if 15 <= len(candidate) <= 700:
+                best_text = candidate
+                break
+
+        if not best_text:
+            continue
+
+        lines = [
+            clean_text(line)
+            for line in best_text.splitlines()
+            if clean_text(line)
+        ]
+
+        if not lines:
+            continue
+
+        # Remove the trailing "More".
+        lines = [line for line in lines if line.lower() != "more"]
+        if not lines:
+            continue
+
+        # Pick the first line that looks like an entry title.
+        title = ""
+        for line in lines:
+            lowered = line.lower()
+            if lowered.startswith(
+                ("deadline", "last deadline", "categories", "published by")
+            ):
+                continue
+            if line.lower() in {
+                "brand awards and design awards.",
+                "posters",
+            }:
+                continue
+            title = line
+            break
+
+        if not title:
+            continue
+
+        key = title.lower()
+        if key in seen:
+            continue
+
+        seen.add(key)
+
+        results.append(
+            {
+                "title": title,
+                "text": " ".join(lines),
+                "officialUrlHint": normalize_url(anchor["href"]),
+                "from_competition_listing": True,
+            }
+        )
+
+    return results
+
+
+def resolve_posterterritory_post_url(title):
+    """
+    Resolve a curated listing title to its PosterTerritory article.
+    Prefer WordPress REST search; fall back to the site's search URL.
+    """
+    try:
+        response = session.get(
+            BASE_URL + "wp-json/wp/v2/search",
+            params={
+                "search": title,
+                "per_page": 5,
+                "subtype": "post",
+            },
+            timeout=20,
+        )
+        response.raise_for_status()
+        results = response.json()
+
+        if results:
+            exact = [
+                item for item in results
+                if clean_text(item.get("title", {}).get("rendered", "")).lower()
+                == clean_text(title).lower()
+            ]
+            best = exact[0] if exact else results[0]
+            url = normalize_url(best.get("url", ""))
+            if url:
+                return url
+    except Exception as error:
+        print("WordPress search failed:", error)
+
+    # Slug fallback. This is only used after the API search fails.
+    slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
+    return normalize_url(
+        BASE_URL + slug + "/"
+    )
+
+
+# ============================================================
 # 逐頁搜尋
 # ============================================================
 
@@ -1169,95 +1311,76 @@ def collect_listing_posts():
 
     all_posts = {}
 
+    # 1) Curated Poster Competitions index.
     competition_listing_url = BASE_URL + "poster-competitions/"
 
+    print("")
+    print("======================================")
+    print("Scanning dedicated competition listing")
+    print(competition_listing_url)
+
     try:
-        print("Scanning dedicated competition listing:", competition_listing_url)
         html = download(competition_listing_url)
         soup = BeautifulSoup(html, "html.parser")
-        posts = extract_posts(
-            soup,
-            competition_listing_url,
-            from_competition_listing=True,
-        )
-        print("Competition-listing posts found:", len(posts))
-        for post in posts:
-            if post["url"] and same_domain(post["url"]):
-                all_posts[post["url"]] = post
-    except Exception as error:
-        print("Unable to download competition listing:", error)
 
-    for page_number in range(
-        1,
-        MAX_PAGES + 1
-    ):
+        catalog = extract_competition_catalog(soup)
+        print("Curated competition entries:", len(catalog))
+
+        for item in catalog:
+            title = item["title"]
+            article_url = resolve_posterterritory_post_url(title)
+
+            if article_url and same_domain(article_url):
+                all_posts[article_url] = {
+                    "title": title,
+                    "url": article_url,
+                    "text": item["text"],
+                    "from_competition_listing": True,
+                    "officialUrlHint": item.get("officialUrlHint", ""),
+                }
+
+            time.sleep(0.15)
+
+    except Exception as error:
+        print(
+            "Unable to download/parse competition listing:",
+            error
+        )
+
+    # 2) Homepage pagination remains useful for recent posts and publication dates.
+    for page_number in range(1, MAX_PAGES + 1):
 
         if page_number == 1:
-
             url = START_PAGE
-
         else:
-
-            url = (
-                BASE_URL
-                + f"page/{page_number}/"
-            )
+            url = BASE_URL + f"page/{page_number}/"
 
         print("")
-        print(
-            "======================================"
-        )
-
-        print(
-            f"Scanning listing page {page_number}"
-        )
-
-        print(
-            url
-        )
+        print("======================================")
+        print(f"Scanning listing page {page_number}")
+        print(url)
 
         try:
-
-            html = download(
-                url
-            )
-
+            html = download(url)
         except Exception as error:
-
-            print(
-                "Unable to download page:",
-                error
-            )
-
+            print("Unable to download page:", error)
             continue
 
-        soup = BeautifulSoup(
-            html,
-            "html.parser"
-        )
-
+        soup = BeautifulSoup(html, "html.parser")
         posts = extract_posts(
             soup,
             url,
             from_competition_listing=False,
         )
 
-        print(
-            "Posts found:",
-            len(posts)
-        )
+        print("Posts found:", len(posts))
 
         if not posts:
-            print(
-                "No posts found. Stopping pagination."
-            )
+            print("No posts found. Stopping pagination.")
             break
 
         for post in posts:
-
-            post_url = post[
-                "url"
-            ]
+            post_url = post["url"]
 
             if (
                 not post_url
@@ -1266,22 +1389,28 @@ def collect_listing_posts():
                 continue
 
             existing = all_posts.get(post_url)
-            if existing and existing.get("from_competition_listing", False):
-                post["from_competition_listing"] = True
+
+            if existing and existing.get(
+                "from_competition_listing",
+                False
+            ):
+                # Keep the curated-listing flag/title while enriching
+                # the text with the homepage/article snippet.
+                existing["text"] = (
+                    existing.get("text", "")
+                    + " "
+                    + post.get("text", "")
+                )
+                continue
+
             all_posts[post_url] = post
 
-        # 避免請求過快
         time.sleep(0.4)
 
     print("")
-    print(
-        "Total unique posts:",
-        len(all_posts)
-    )
+    print("Total unique posts:", len(all_posts))
 
-    return list(
-        all_posts.values()
-    )
+    return list(all_posts.values())
 
 
 # ============================================================
@@ -1404,12 +1533,6 @@ def build_competitions(
 
         if deadline < CUTOFF_DATE:
 
-            print(
-                "SKIP - before cutoff:",
-                title,
-                deadline.isoformat()
-            )
-
             continue
 
         # ----------------------------------------------------
@@ -1438,7 +1561,10 @@ def build_competitions(
             "Finding official website..."
         )
 
-        official_url = find_official_url(url)
+        official_url = (
+            post.get("officialUrlHint", "")
+            or find_official_url(url)
+        )
 
         time.sleep(0.3)
 
