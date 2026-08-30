@@ -1057,82 +1057,20 @@ function saveLocalHiddenKeys(keys){
 }
 
 
-async function deleteCompetitionByKey(key){
+function isHidden(item){
 
-  const item =
-    data.find(
-      x =>
-        normalizeIgnoreKey(x) ===
-        key
-    );
+  if(
+    item &&
+    item.__hidden === true
+  ){
 
-  if(!item)
-    return;
-
-  const ok =
-    window.confirm(
-      `確定要刪除「${item.title}」嗎？\n\n` +
-      `刪除後這筆比賽將不再顯示。`
-    );
-
-  if(!ok)
-    return;
-
-  /*
-    Mark the row hidden and remove it from the active data array.
-    This path is independent of item.participating.
-  */
-  item.__hidden = true;
-
-  hideCompetition(item);
-
-  hiddenItemsRegistry.set(
-    key,
-    item
-  );
-
-  data =
-    data.filter(
-      x =>
-        normalizeIgnoreKey(x) !==
-        key
-    );
-
-  render();
-
-  if(currentUser){
-
-    const cloudResult =
-      await setCloudHidden(
-        item,
-        true
-      );
-
-    if(!cloudResult.ok){
-
-      window.alert(
-        '這筆比賽已從目前畫面隱藏，\n' +
-        '但雲端同步尚未完成：\n\n' +
-        cloudResult.message
-      );
-
-    }
+    return true;
 
   }
-
-}
-
-
-function isHidden(item){
 
   const key =
     normalizeIgnoreKey(item);
 
-  /*
-    Local hidden state is an immediate UI action. Cloud hidden=true is also
-    authoritative. We deliberately do not let an existing cloud hidden=false
-    row override a just-clicked local hide.
-  */
   if(
     localHiddenKeys().has(key)
   ){
@@ -1194,6 +1132,23 @@ async function loadCloudState(){
         ]
       )
     );
+
+  data.forEach(item => {
+
+    const key =
+      normalizeIgnoreKey(item);
+
+    const row =
+      cloudState.get(key);
+
+    if(row){
+
+      item.__hidden =
+        !!row.hidden;
+
+    }
+
+  });
 
   cloudSyncReady = true;
 
@@ -1929,6 +1884,81 @@ async function persistOne(item){
    RENDER
 ===================================================== */
 
+
+async function handleDeleteClick(event){
+
+  const button =
+    event.target.closest(
+      '.deleteBtn'
+    );
+
+  if(!button)
+    return;
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  const key =
+    button.dataset.deleteId;
+
+  const item =
+    data.find(
+      x =>
+        normalizeIgnoreKey(x) === key
+    );
+
+  if(!item)
+    return;
+
+  const ok =
+    window.confirm(
+      `確定要刪除「${item.title}」嗎？\n\n` +
+      `刪除後這筆比賽將不再顯示。`
+    );
+
+  if(!ok)
+    return;
+
+  item.__hidden = true;
+
+  hideCompetition(item);
+
+  hiddenItemsRegistry.set(
+    key,
+    item
+  );
+
+  data =
+    data.filter(
+      x =>
+        normalizeIgnoreKey(x) !== key
+    );
+
+  render();
+
+  if(currentUser){
+
+    const cloudResult =
+      await setCloudHidden(
+        item,
+        true
+      );
+
+    if(!cloudResult.ok){
+
+      window.alert(
+        '這筆比賽已從目前畫面隱藏，\\n' +
+        '但雲端同步尚未完成：\\n\\n' +
+        cloudResult.message
+      );
+
+    }
+
+  }
+
+}
+
+
 function render(){
 
   const rows =
@@ -2136,7 +2166,7 @@ function render(){
             <button
               class="deleteBtn"
               type="button"
-              onclick="deleteCompetitionByKey('${esc(normalizeIgnoreKey(item))}')"
+              data-delete-id="${esc(normalizeIgnoreKey(item))}"
               title="刪除這筆比賽"
               aria-label="刪除這筆比賽"
             >
@@ -2191,6 +2221,7 @@ function render(){
       };
 
     });
+
 
   /* ===================================================
      RESULT BUTTON
@@ -2278,6 +2309,16 @@ function render(){
     ).length;
 
 }
+
+
+/* =====================================================
+   DELETE CLICK DELEGATION
+===================================================== */
+
+list.addEventListener(
+  'click',
+  handleDeleteClick
+);
 
 
 /* =====================================================
@@ -2467,6 +2508,8 @@ document
       }
 
     }
+
+    target.__hidden = false;
 
     restoreCompetition(target);
 
