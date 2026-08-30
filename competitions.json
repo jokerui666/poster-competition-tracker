@@ -110,17 +110,6 @@
     "url": "https://www.posterterritory.com/posters4peace-open-call"
   },
   {
-    "title": "Street Poster Kraków",
-    "titleZh": "克拉科夫街頭海報",
-    "deadline": "2026-08-22",
-    "resultDate": "",
-    "participating": false,
-    "result": "pending",
-    "officialUrl": "https://posterterritory.myshopify.com",
-    "sourceUrl": "https://www.posterterritory.com/street-poster-krakow",
-    "url": "https://www.posterterritory.com/street-poster-krakow"
-  },
-  {
     "title": "RUWAKA International Poster Exhibition in Cirebon, Indonesia",
     "titleZh": "印尼齊雷邦RUWAKA國際海報展",
     "deadline": "2026-08-28",
@@ -134,7 +123,7 @@
   {
     "title": "SEWUNARA. 2026 Semarang International Art & Design Festival",
     "titleZh": "SEWUNARA. 2026三寶壟國際藝術設計節",
-    "deadline": "2026-08-28",
+    "deadline": "2026-09-01",
     "resultDate": "",
     "participating": false,
     "result": "pending",
@@ -174,6 +163,17 @@
     "officialUrl": "https://posterterritory.myshopify.com",
     "sourceUrl": "https://www.posterterritory.com/posko-visual-2026",
     "url": "https://www.posterterritory.com/posko-visual-2026"
+  },
+  {
+    "title": "Street Poster Kraków",
+    "titleZh": "克拉科夫街頭海報",
+    "deadline": "2026-09-15",
+    "resultDate": "",
+    "participating": false,
+    "result": "pending",
+    "officialUrl": "https://posterterritory.myshopify.com",
+    "sourceUrl": "https://www.posterterritory.com/street-poster-krakow",
+    "url": "https://www.posterterritory.com/street-poster-krakow"
   },
   {
     "title": "Communication Arts 2027 Typography Competition",
