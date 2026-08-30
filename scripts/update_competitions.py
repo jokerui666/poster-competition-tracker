@@ -671,17 +671,69 @@ def parse_roman_date(text):
         return None
 
 
-def parse_published_date(text):
-    """Parse a publication date such as August 13, 2026."""
-    return parse_date(text)
+def find_publication_date(text):
+    """
+    Fallback date for items without an explicit Deadline.
+    Prefer a 2026/2027 date because the tracker is currently focused on
+    those competition years. This date is marked with * in the output.
+    """
+    text = clean_text(text)
 
+    month_names = (
+        "January|Jan|February|Feb|March|Mar|April|Apr|May|"
+        "June|Jun|July|Jul|August|Aug|September|Sep|Sept|"
+        "October|Oct|November|Nov|December|Dec"
+    )
 
-def format_tracker_date(iso_date, date_type="deadline"):
-    """No extra field: append * when the date is a publication-date fallback."""
-    if not iso_date:
-        return ""
-    value = str(iso_date).rstrip("*")
-    return value if date_type == "deadline" else value + "*"
+    patterns = [
+        re.compile(
+            rf"\b({month_names})\s+"
+            r"(\d{1,2})(?:st|nd|rd|th)?"
+            r"(?:,\s*|\s+)(2026|2027)\b",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            rf"\b(\d{1,2})(?:st|nd|rd|th)?\s+"
+            rf"({month_names})(?:,\s*|\s+)(2026|2027)\b",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"\b(2026|2027)[-/](\d{1,2})[-/](\d{1,2})\b",
+            re.IGNORECASE,
+        ),
+    ]
+
+    for index, pattern in enumerate(patterns):
+        match = pattern.search(text)
+        if not match:
+            continue
+
+        try:
+            groups = match.groups()
+
+            if index == 0:
+                month = MONTHS[groups[0].lower()]
+                day = int(groups[1])
+                year = int(groups[2])
+                return date(year, month, day)
+
+            if index == 1:
+                day = int(groups[0])
+                month = MONTHS[groups[1].lower()]
+                year = int(groups[2])
+                return date(year, month, day)
+
+            return date(
+                int(groups[0]),
+                int(groups[1]),
+                int(groups[2]),
+            )
+
+        except (ValueError, KeyError):
+            continue
+
+    return None
+
 
 
 def find_deadline(text):
@@ -1229,8 +1281,6 @@ def build_competitions(
             text
         )
 
-        date_type = "deadline"
-
         # 有些列表摘要沒有日期，
         # 再進入文章頁面找一次
         if deadline is None:
@@ -1277,10 +1327,12 @@ def build_competitions(
                     error
                 )
 
+        date_type = "deadline"
+
         if deadline is None:
-            # No explicit Deadline: use publication date for sorting and
-            # mark it with * so the UI does not imply it is a deadline.
-            publication_date = parse_published_date(text)
+            # No explicit Deadline: keep the item sortable using the
+            # publication date, and mark the visible date with *.
+            publication_date = find_publication_date(text)
 
             if publication_date is None:
                 print(
@@ -1292,7 +1344,7 @@ def build_competitions(
             deadline = publication_date
             date_type = "published"
 
-# ----------------------------------------------------
+        # ----------------------------------------------------
         # 只保留 2026/06/01 之後
         # ----------------------------------------------------
 
@@ -1341,7 +1393,10 @@ def build_competitions(
         item = {
             "title": title,
             "titleZh": title_zh,
-            "deadline": format_tracker_date(deadline.isoformat(), date_type),
+            "deadline": (
+                deadline.isoformat()
+                + ("*" if date_type == "published" else "")
+            ),
             "resultDate": "",
             "participating": False,
             "result": "pending",
@@ -1369,7 +1424,8 @@ def build_competitions(
 
         print(
             "DEADLINE:",
-            deadline.isoformat()
+            deadline.isoformat(),
+            "(publication date)" if date_type == "published" else ""
         )
 
         print(
