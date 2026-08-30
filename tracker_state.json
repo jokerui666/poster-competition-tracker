@@ -1,5 +1,6 @@
 {
   "initialized": true,
+  "accumulatorVersion": 1,
   "pagesScannedPerUpdate": 3,
-  "mode": "seed-three-pages-then-accumulate"
+  "mode": "first-three-pages-then-accumulate"
 }
