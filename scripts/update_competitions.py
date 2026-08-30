@@ -761,62 +761,85 @@ def find_deadline(text):
     ]
 
     date_patterns = [
-        # YYYY-MM-DD / YYYY/MM/DD
+        re.compile(r"\b(2026|2027)[-/](\d{1,2})[-/](\d{1,2})\b"),
         re.compile(
-            r"\b(2026|2027)[-/](\d{1,2})[-/](\d{1,2})\b",
-            re.IGNORECASE,
+            r"\b(January|Jan|February|Feb|March|Mar|April|Apr|May|June|Jun|"
+            r"July|Jul|August|Aug|September|Sep|Sept|October|Oct|"
+            r"November|Nov|December|Dec)\s+(\d{1,2})(?:st|nd|rd|th)?"
+            r"(?:,\s*|\s+)(2026|2027)\b", re.I
         ),
-        # August 31, 2026 / Aug 31, 2026 / Sep 1 2026
-        re.compile(
-            r"\b"
-            r"(January|Jan|February|Feb|March|Mar|April|Apr|May|"
-            r"June|Jun|July|Jul|August|Aug|September|Sep|Sept|"
-            r"October|Oct|November|Nov|December|Dec)"
-            r"\s+(\d{1,2})(?:st|nd|rd|th)?"
-            r"(?:,\s*|\s+)"
-            r"(2026|2027)\b",
-            re.IGNORECASE,
-        ),
-        # 31 August 2026 / 31 Aug 2026
         re.compile(
             r"\b(\d{1,2})(?:st|nd|rd|th)?\s+"
-            r"(January|Jan|February|Feb|March|Mar|April|Apr|May|"
-            r"June|Jun|July|Jul|August|Aug|September|Sep|Sept|"
-            r"October|Oct|November|Nov|December|Dec)"
-            r"(?:,\s*|\s+)(2026|2027)\b",
-            re.IGNORECASE,
+            r"(January|Jan|February|Feb|March|Mar|April|Apr|May|June|Jun|"
+            r"July|Jul|August|Aug|September|Sep|Sept|October|Oct|"
+            r"November|Nov|December|Dec)(?:,\s*|\s+)(2026|2027)\b", re.I
+        ),
+        re.compile(
+            r"\b(January|Jan|February|Feb|March|Mar|April|Apr|May|June|Jun|"
+            r"July|Jul|August|Aug|September|Sep|Sept|October|Oct|"
+            r"November|Nov|December|Dec)\s+(\d{1,2})(?:st|nd|rd|th)?\b", re.I
+        ),
+        re.compile(
+            r"\b(\d{1,2})(?:st|nd|rd|th)?\s+"
+            r"(January|Jan|February|Feb|March|Mar|April|Apr|May|June|Jun|"
+            r"July|Jul|August|Aug|September|Sep|Sept|October|Oct|"
+            r"November|Nov|December|Dec)\b", re.I
         ),
     ]
 
     def parse_date_from_chunk(chunk):
+        candidates = []
+
         for pattern in date_patterns:
-            match = pattern.search(chunk)
-            if not match:
-                continue
-
-            try:
-                if match.lastindex == 3:
+            for match in pattern.finditer(chunk):
+                try:
                     groups = match.groups()
-                    if re.fullmatch(r"\d{4}", groups[0]):
-                        year, month, day = map(int, groups)
-                    elif groups[0].isdigit():
-                        day = int(groups[0])
-                        month = MONTHS[groups[1].lower()]
-                        year = int(groups[2])
-                    else:
-                        month = MONTHS[groups[0].lower()]
-                        day = int(groups[1])
-                        year = int(groups[2])
 
-                    return date(year, month, day)
-            except (ValueError, KeyError):
-                pass
+                    if match.lastindex == 3:
+                        if groups[0].isdigit() and len(groups[0]) == 4:
+                            parsed = date(
+                                int(groups[0]),
+                                int(groups[1]),
+                                int(groups[2]),
+                            )
+                        elif groups[0].isdigit():
+                            parsed = date(
+                                int(groups[2]),
+                                MONTHS[groups[1].lower()],
+                                int(groups[0]),
+                            )
+                        else:
+                            parsed = date(
+                                int(groups[2]),
+                                MONTHS[groups[0].lower()],
+                                int(groups[1]),
+                            )
+                    else:
+                        if groups[0].isdigit():
+                            parsed = date(
+                                2026,
+                                MONTHS[groups[1].lower()],
+                                int(groups[0]),
+                            )
+                        else:
+                            parsed = date(
+                                2026,
+                                MONTHS[groups[0].lower()],
+                                int(groups[1]),
+                            )
+
+                    candidates.append((match.start(), parsed))
+
+                except (ValueError, KeyError):
+                    continue
+
+        if candidates:
+            # The first date after the Deadline keyword wins.
+            candidates.sort(key=lambda item: item[0])
+            return candidates[0][1]
 
         roman = parse_roman_date(chunk)
-        if roman:
-            return roman
-
-        return None
+        return roman if roman else None
 
     found_deadline_keyword = False
 
@@ -874,8 +897,12 @@ EXCLUDE_KEYWORDS = [
 
 def looks_like_poster_competition(
     title,
-    text
+    text,
+    from_competition_listing=False
 ):
+
+    if from_competition_listing:
+        return True
 
     combined = (
         clean_text(title)
@@ -983,7 +1010,8 @@ def download(url):
 
 def extract_posts(
     soup,
-    page_url
+    page_url,
+    from_competition_listing=False
 ):
 
     posts = []
@@ -1064,6 +1092,7 @@ def extract_posts(
                     "title": title,
                     "url": url,
                     "text": text,
+                    "from_competition_listing": from_competition_listing,
                 }
             )
 
@@ -1140,6 +1169,24 @@ def collect_listing_posts():
 
     all_posts = {}
 
+    competition_listing_url = BASE_URL + "poster-competitions/"
+
+    try:
+        print("Scanning dedicated competition listing:", competition_listing_url)
+        html = download(competition_listing_url)
+        soup = BeautifulSoup(html, "html.parser")
+        posts = extract_posts(
+            soup,
+            competition_listing_url,
+            from_competition_listing=True,
+        )
+        print("Competition-listing posts found:", len(posts))
+        for post in posts:
+            if post["url"] and same_domain(post["url"]):
+                all_posts[post["url"]] = post
+    except Exception as error:
+        print("Unable to download competition listing:", error)
+
     for page_number in range(
         1,
         MAX_PAGES + 1
@@ -1191,7 +1238,8 @@ def collect_listing_posts():
 
         posts = extract_posts(
             soup,
-            url
+            url,
+            from_competition_listing=False,
         )
 
         print(
@@ -1217,9 +1265,10 @@ def collect_listing_posts():
             ):
                 continue
 
-            all_posts[
-                post_url
-            ] = post
+            existing = all_posts.get(post_url)
+            if existing and existing.get("from_competition_listing", False):
+                post["from_competition_listing"] = True
+            all_posts[post_url] = post
 
         # 避免請求過快
         time.sleep(0.4)
@@ -1269,8 +1318,13 @@ def build_competitions(
 
         if not looks_like_poster_competition(
             title,
-            text
+            text,
+            from_competition_listing=post.get(
+                "from_competition_listing",
+                False
+            ),
         ):
+            print("SKIP - not poster competition:", title)
             continue
 
         # ----------------------------------------------------
@@ -1349,6 +1403,12 @@ def build_competitions(
         # ----------------------------------------------------
 
         if deadline < CUTOFF_DATE:
+
+            print(
+                "SKIP - before cutoff:",
+                title,
+                deadline.isoformat()
+            )
 
             continue
 
