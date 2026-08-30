@@ -11,8 +11,13 @@ from bs4 import BeautifulSoup
 
 
 BASE_URL = "https://www.posterterritory.com/"
+START_PAGE = BASE_URL
 PAGES_TO_SCAN = 3
-START_URL = BASE_URL
+
+# This version intentionally does NOT use a date cutoff.
+# First run seeds the tracker from current pages 1-3.
+# Later runs accumulate new records and keep old records forever.
+ACCUMULATOR_VERSION = 1
 STATE_FILE = "tracker_state.json"
 
 HEADERS = {
@@ -46,6 +51,16 @@ MONTHS = {
     "december": 12, "dec": 12,
 }
 
+NON_COMPETITION_HINTS = (
+    "poster recipe series",
+    "poster recipes",
+    "frontline features",
+    "dear friends of the posterterritory initiative",
+    "donation",
+    "offline/online conference",
+)
+
+
 def clean_text(text):
     if not text:
         return ""
@@ -62,16 +77,22 @@ def normalize_url(url):
 
 def same_domain(url):
     try:
-        host = urlparse(url).netloc.lower()
-        return host in {"", "posterterritory.com", "www.posterterritory.com"}
+        return urlparse(url).netloc.lower() in {
+            "",
+            "posterterritory.com",
+            "www.posterterritory.com",
+        }
     except Exception:
         return False
 
 
+def download(url):
+    response = session.get(url, timeout=30)
+    response.raise_for_status()
+    return response.text
+
+
 def parse_date_text(text, default_year=None):
-    """
-    Parse common English dates. When a year is omitted, default_year is used.
-    """
     text = clean_text(text)
 
     patterns = [
@@ -83,7 +104,7 @@ def parse_date_text(text, default_year=None):
                 r"October|Oct|November|Nov|December|Dec)"
                 r"\s+(\d{1,2})(?:st|nd|rd|th)?"
                 r"(?:,\s*|\s+)(\d{4})\b",
-                re.IGNORECASE,
+                re.I,
             ),
             "mdy",
         ),
@@ -94,12 +115,14 @@ def parse_date_text(text, default_year=None):
                 r"June|Jun|July|Jul|August|Aug|September|Sep|Sept|"
                 r"October|Oct|November|Nov|December|Dec)"
                 r"(?:,\s*|\s+)(\d{4})\b",
-                re.IGNORECASE,
+                re.I,
             ),
             "dmy",
         ),
         (
-            re.compile(r"\b(\d{4})[-/](\d{1,2})[-/](\d{1,2})\b"),
+            re.compile(
+                r"\b(\d{4})[-/](\d{1,2})[-/](\d{1,2})\b"
+            ),
             "ymd",
         ),
         (
@@ -109,7 +132,7 @@ def parse_date_text(text, default_year=None):
                 r"June|Jun|July|Jul|August|Aug|September|Sep|Sept|"
                 r"October|Oct|November|Nov|December|Dec)"
                 r"\s+(\d{1,2})(?:st|nd|rd|th)?\b",
-                re.IGNORECASE,
+                re.I,
             ),
             "md",
         ),
@@ -119,7 +142,7 @@ def parse_date_text(text, default_year=None):
                 r"(January|Jan|February|Feb|March|Mar|April|Apr|May|"
                 r"June|Jun|July|Jul|August|Aug|September|Sep|Sept|"
                 r"October|Oct|November|Nov|December|Dec)\b",
-                re.IGNORECASE,
+                re.I,
             ),
             "dm",
         ),
@@ -135,17 +158,23 @@ def parse_date_text(text, default_year=None):
 
             if kind == "mdy":
                 return date(
-                    int(g[2]), MONTHS[g[0].lower()], int(g[1])
+                    int(g[2]),
+                    MONTHS[g[0].lower()],
+                    int(g[1]),
                 )
 
             if kind == "dmy":
                 return date(
-                    int(g[2]), MONTHS[g[1].lower()], int(g[0])
+                    int(g[2]),
+                    MONTHS[g[1].lower()],
+                    int(g[0]),
                 )
 
             if kind == "ymd":
                 return date(
-                    int(g[0]), int(g[1]), int(g[2])
+                    int(g[0]),
+                    int(g[1]),
+                    int(g[2]),
                 )
 
             if default_year is None:
@@ -177,49 +206,65 @@ def parse_roman_date(text, default_year=None):
         r"(I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII)"
         r"(?:\s+(\d{4}))?\b",
         clean_text(text),
-        re.IGNORECASE,
+        re.I,
     )
+
     if not match:
         return None
 
     try:
         roman = {
-            "I": 1, "II": 2, "III": 3, "IV": 4, "V": 5,
-            "VI": 6, "VII": 7, "VIII": 8, "IX": 9, "X": 10,
-            "XI": 11, "XII": 12,
+            "I": 1, "II": 2, "III": 3, "IV": 4,
+            "V": 5, "VI": 6, "VII": 7, "VIII": 8,
+            "IX": 9, "X": 10, "XI": 11, "XII": 12,
         }
-        year = int(match.group(3)) if match.group(3) else default_year
+
+        year = (
+            int(match.group(3))
+            if match.group(3)
+            else default_year
+        )
+
         if year is None:
             return None
+
         return date(
             year,
             roman[match.group(2).upper()],
             int(match.group(1)),
         )
+
     except (ValueError, KeyError):
         return None
 
 
 def find_deadline(text, default_year=None):
     """
-    Only dates following a deadline-like keyword are treated as deadlines.
-    If the year is omitted, default_year (normally publication year) is used.
+    Only parse a date immediately associated with a deadline-like keyword.
+    A yearless deadline inherits the publication year.
     """
     text = clean_text(text)
 
     keywords = (
-        r"last\s+deadline|submission\s+deadline|closing\s+date|"
-        r"entries\s+close|deadline|submit"
+        r"last\s+deadline|submission\s+deadline|"
+        r"closing\s+date|entries\s+close|deadline|submit"
     )
 
-    # Longest/most-specific keyword first.
-    for match in re.finditer(keywords, text, flags=re.IGNORECASE):
-        chunk = text[match.end():match.end() + 180]
+    for keyword in re.finditer(
+        keywords,
+        text,
+        flags=re.I,
+    ):
+        chunk = text[
+            keyword.end():
+            keyword.end() + 180
+        ]
 
         parsed = parse_date_text(
             chunk,
             default_year=default_year,
         )
+
         if parsed:
             return parsed
 
@@ -227,112 +272,108 @@ def find_deadline(text, default_year=None):
             chunk,
             default_year=default_year,
         )
+
         if parsed:
             return parsed
 
     return None
 
 
-def find_publication_date(container):
-    """
-    Publication date is obtained from WordPress's own time/date link first,
-    then from visible date text.
-    """
-    # Prefer <time datetime="...">.
-    for element in container.find_all("time"):
-        value = (
-            element.get("datetime")
-            or element.get("content")
-            or element.get_text(" ", strip=True)
-        )
-        parsed = parse_date_text(value)
-        if parsed:
-            return parsed
+def extract_publication_date(container):
+    # WordPress generally provides <time datetime="...">.
+    for time_element in container.find_all("time"):
+        for value in (
+            time_element.get("datetime", ""),
+            time_element.get("content", ""),
+            time_element.get_text(" ", strip=True),
+        ):
+            parsed = parse_date_text(value)
+            if parsed:
+                return parsed
 
-    # WordPress Baskerville pages commonly have a date link.
-    date_candidates = []
-    for anchor in container.find_all("a", href=True):
-        text = clean_text(anchor.get_text(" ", strip=True))
-        parsed = parse_date_text(text)
-        if parsed:
-            date_candidates.append(parsed)
+    # Also inspect date-like classes/attributes.
+    candidates = container.find_all(
+        attrs={
+            "class": re.compile(
+                r"(entry-date|published|post-date|posted)",
+                re.I,
+            )
+        }
+    )
 
-    if date_candidates:
-        return date_candidates[-1]
+    for candidate in candidates:
+        for value in (
+            candidate.get("datetime", ""),
+            candidate.get("content", ""),
+            candidate.get_text(" ", strip=True),
+        ):
+            parsed = parse_date_text(value)
+            if parsed:
+                return parsed
 
+    # Final fallback: visible text.
     return parse_date_text(
         container.get_text(" ", strip=True)
     )
 
 
+def should_include_post(title, text):
+    combined = (
+        clean_text(title)
+        + " "
+        + clean_text(text)
+    ).lower()
+
+    # We intentionally do NOT require words such as "poster",
+    # "biennale", or "competition": that was causing legitimate
+    # entries such as BULLSEYE/Hiiibrand to disappear.
+    for hint in NON_COMPETITION_HINTS:
+        if hint in combined:
+            return False
+
+    return True
+
+
 def extract_posts(soup):
     posts = []
-    seen = set()
 
-    articles = soup.find_all("article")
-
-    if articles:
-        containers = articles
-    else:
-        containers = []
-        for heading in soup.find_all(["h1", "h2", "h3", "h4"]):
-            parent = heading.parent
-            if parent:
-                containers.append(parent)
-
-    for container in containers:
-        heading = container.find(
+    for article in soup.find_all("article"):
+        heading = article.find(
             ["h1", "h2", "h3", "h4"]
         )
+
         if not heading:
+            continue
+
+        link = heading.find("a", href=True)
+        if not link:
+            link = article.find("a", href=True)
+
+        if not link:
             continue
 
         title = clean_text(
             heading.get_text(" ", strip=True)
         )
-        if not title:
-            continue
-
-        link = heading.find("a", href=True)
-        if not link:
-            link = container.find("a", href=True)
-        if not link:
-            continue
-
         url = normalize_url(
             link.get("href", "")
         )
-        if not url or not same_domain(url):
+
+        if not title or not url or not same_domain(url):
             continue
 
-        if url in seen:
-            continue
-        seen.add(url)
-
-        official_url = ""
-        for anchor in container.find_all("a", href=True):
-            label = clean_text(
-                anchor.get_text(" ", strip=True)
-            ).lower()
-            if label in {"more", "visit website"}:
-                candidate = normalize_url(
-                    anchor.get("href", "")
-                )
-                if candidate and not same_domain(candidate):
-                    official_url = candidate
-                    break
+        text = clean_text(
+            article.get_text(" ", strip=True)
+        )
 
         posts.append(
             {
                 "title": title,
                 "url": url,
-                "text": clean_text(
-                    container.get_text(" ", strip=True)
+                "text": text,
+                "publicationDate": extract_publication_date(
+                    article
                 ),
-                "publicationDate": find_publication_date(
-                    container
-                ),
-                "officialUrl": official_url,
             }
         )
 
@@ -341,66 +382,178 @@ def extract_posts(soup):
 
 def collect_first_three_pages():
     all_posts = {}
-    for page_number in range(1, PAGES_TO_SCAN + 1):
+
+    for page_number in range(
+        1,
+        PAGES_TO_SCAN + 1
+    ):
         url = (
-            START_URL
+            START_PAGE
             if page_number == 1
             else BASE_URL + f"page/{page_number}/"
         )
 
-        print("")
-        print("======================================")
-        print(f"Scanning PosterTerritory page {page_number}")
-        print(url)
+        print(
+            f"Scanning page {page_number}: {url}"
+        )
 
         try:
             html = download(url)
         except Exception as error:
-            print("Unable to download page:", error)
+            print(
+                "Unable to download page:",
+                error
+            )
             continue
 
-        soup = BeautifulSoup(html, "html.parser")
+        soup = BeautifulSoup(
+            html,
+            "html.parser"
+        )
+
         posts = extract_posts(soup)
-        print("Posts found:", len(posts))
+
+        print(
+            f"Posts found on page {page_number}:",
+            len(posts)
+        )
 
         for post in posts:
-            existing = all_posts.get(post["url"])
+            existing = all_posts.get(
+                post["url"]
+            )
 
             if existing:
-                # Keep the most complete publication metadata available.
-                if not existing.get("publicationDate") and post.get(
-                    "publicationDate"
+                if (
+                    existing.get("publicationDate") is None
+                    and post.get("publicationDate") is not None
                 ):
-                    existing["publicationDate"] = post["publicationDate"]
-                if not existing.get("officialUrl") and post.get(
-                    "officialUrl"
-                ):
-                    existing["officialUrl"] = post["officialUrl"]
-                continue
-
-            all_posts[post["url"]] = post
+                    existing["publicationDate"] = (
+                        post["publicationDate"]
+                    )
+                existing["text"] = clean_text(
+                    existing.get("text", "")
+                    + " "
+                    + post.get("text", "")
+                )
+            else:
+                all_posts[
+                    post["url"]
+                ] = post
 
         time.sleep(0.35)
 
-    print("")
     print(
-        "Total unique posts from first three pages:",
-        len(all_posts),
+        "Total unique posts from pages 1-3:",
+        len(all_posts)
     )
-    return list(all_posts.values())
+
+    return list(
+        all_posts.values()
+    )
 
 
-def download(url):
-    print("Downloading:", url)
-    response = session.get(url, timeout=30)
-    print(
-        "HTTP:",
-        response.status_code,
-        "Bytes:",
-        len(response.content),
-    )
-    response.raise_for_status()
-    return response.text
+def find_official_url(article_url):
+    try:
+        html = download(article_url)
+        soup = BeautifulSoup(
+            html,
+            "html.parser"
+        )
+
+        strong_words = (
+            "official website",
+            "official site",
+            "visit website",
+            "website",
+            "visit site",
+            "apply",
+            "submit",
+            "enter now",
+            "enter competition",
+            "submission",
+            "register",
+        )
+
+        for anchor in soup.find_all(
+            "a",
+            href=True
+        ):
+            href = normalize_url(
+                anchor.get("href", "")
+            )
+
+            if (
+                not href
+                or same_domain(href)
+            ):
+                continue
+
+            label = clean_text(
+                anchor.get_text(" ", strip=True)
+            ).lower()
+
+            context = clean_text(
+                anchor.parent.get_text(
+                    " ",
+                    strip=True
+                )
+                if anchor.parent
+                else ""
+            ).lower()
+
+            if any(
+                word in label
+                or word in context
+                for word in strong_words
+            ):
+                return href
+
+    except Exception as error:
+        print(
+            "Official website lookup failed:",
+            error
+        )
+
+    return ""
+
+
+TRANSLATION_URL = (
+    "https://api.mymemory.translated.net/get"
+)
+
+
+def translate_title_zh(title):
+    try:
+        response = session.get(
+            TRANSLATION_URL,
+            params={
+                "q": title,
+                "langpair": "en|zh-TW",
+            },
+            timeout=20,
+        )
+
+        response.raise_for_status()
+
+        data = response.json()
+
+        return clean_text(
+            data.get(
+                "responseData",
+                {}
+            ).get(
+                "translatedText",
+                ""
+            )
+        )
+
+    except Exception as error:
+        print(
+            "Translation failed:",
+            error
+        )
+        return ""
 
 
 def load_json_list(filename):
@@ -408,33 +561,61 @@ def load_json_list(filename):
         return []
 
     try:
-        with open(filename, "r", encoding="utf-8") as file:
+        with open(
+            filename,
+            "r",
+            encoding="utf-8"
+        ) as file:
             data = json.load(file)
-        return data if isinstance(data, list) else []
+
+        return data if isinstance(
+            data,
+            list
+        ) else []
+
     except Exception as error:
-        print("Could not read", filename, ":", error)
+        print(
+            "Could not read",
+            filename,
+            ":",
+            error
+        )
         return []
 
 
 def load_state():
     if not os.path.exists(STATE_FILE):
-        return {"initialized": False}
+        return {}
 
     try:
-        with open(STATE_FILE, "r", encoding="utf-8") as file:
-            state = json.load(file)
-        return state if isinstance(state, dict) else {"initialized": False}
+        with open(
+            STATE_FILE,
+            "r",
+            encoding="utf-8"
+        ) as file:
+            data = json.load(file)
+
+        return data if isinstance(
+            data,
+            dict
+        ) else {}
+
     except Exception:
-        return {"initialized": False}
+        return {}
 
 
 def save_state():
-    with open(STATE_FILE, "w", encoding="utf-8") as file:
+    with open(
+        STATE_FILE,
+        "w",
+        encoding="utf-8"
+    ) as file:
         json.dump(
             {
                 "initialized": True,
+                "accumulatorVersion": ACCUMULATOR_VERSION,
                 "pagesScannedPerUpdate": PAGES_TO_SCAN,
-                "mode": "seed-three-pages-then-accumulate",
+                "mode": "first-three-pages-then-accumulate",
             },
             file,
             ensure_ascii=False,
@@ -445,41 +626,35 @@ def save_state():
 
 def preserve_user_data(new_items, old_items):
     by_url = {}
-    by_title = {}
 
     for item in old_items:
         if not isinstance(item, dict):
             continue
 
-        url = normalize_url(
-            item.get("sourceUrl") or item.get("url", "")
-        ).lower()
-        title = clean_text(
-            item.get("title", "")
+        key = normalize_url(
+            item.get("sourceUrl")
+            or item.get("url", "")
         ).lower()
 
-        if url:
-            by_url[url] = item
-        if title:
-            by_title[title] = item
+        if key:
+            by_url[key] = item
 
     for item in new_items:
-        old = (
-            by_url.get(
-                normalize_url(
-                    item.get("sourceUrl", "")
-                ).lower()
-            )
-            or by_title.get(
-                clean_text(item.get("title", "")).lower()
-            )
-        )
+        key = normalize_url(
+            item.get("sourceUrl")
+            or item.get("url", "")
+        ).lower()
+
+        old = by_url.get(key)
 
         if not old:
             continue
 
         item["participating"] = bool(
-            old.get("participating", False)
+            old.get(
+                "participating",
+                False
+            )
         )
         item["result"] = (
             old.get("result", "pending")
@@ -490,83 +665,75 @@ def preserve_user_data(new_items, old_items):
             or ""
         )
 
-
-def choose_display_date(item):
-    """
-    Return the tracker-visible date.
-
-    A deadline is stored without a marker.
-    A publication-date fallback is stored with '*'.
-    """
-    deadline = clean_text(
-        item.get("deadline", "")
-    )
-
-    if deadline:
-        return deadline
-
-    publication_date = clean_text(
-        item.get("publicationDate", "")
-    )
-
-    if publication_date:
-        return publication_date.rstrip("*") + "*"
-
-    return ""
+        if not item.get("titleZh"):
+            item["titleZh"] = (
+                old.get("titleZh", "")
+                or ""
+            )
 
 
 def make_item(post):
-    publication_date = post.get("publicationDate")
-    publication_year = (
-        publication_date.year
-        if isinstance(publication_date, date)
-        else None
+    title = clean_text(
+        post.get("title", "")
     )
+
+    url = normalize_url(
+        post.get("url", "")
+    )
+
+    publication_date = post.get(
+        "publicationDate"
+    )
+
+    if publication_date is None:
+        return None
 
     deadline = find_deadline(
         post.get("text", ""),
-        default_year=publication_year,
+        default_year=publication_date.year
     )
 
     if deadline is not None:
         display_date = deadline.isoformat()
-    elif publication_date is not None:
-        display_date = publication_date.isoformat() + "*"
     else:
-        # A post without a detectable publication date cannot be reliably
-        # ordered; keep it out rather than inventing a date.
-        return None
+        display_date = (
+            publication_date.isoformat()
+            + "*"
+        )
 
     return {
-        "title": clean_text(post.get("title", "")),
+        "title": title,
         "titleZh": "",
         "deadline": display_date,
         "resultDate": "",
         "participating": False,
         "result": "pending",
-        "officialUrl": post.get("officialUrl", "") or "",
-        "sourceUrl": normalize_url(post.get("url", "")),
-        "url": normalize_url(post.get("url", "")),
+        "officialUrl": "",
+        "sourceUrl": url,
+        "url": url,
     }
 
 
-def merge_history(old_items, current_items, initialized):
+def merge_history(
+    old_items,
+    current_items,
+    initialized
+):
     """
-    First run: current first three pages become the complete clean seed.
-    Later runs: current first three pages are upserted, and old records
-    remain forever even after they leave the first three pages.
+    First run of this accumulator version:
+      replace the old dataset with the current first-three-page seed.
+
+    Later runs:
+      update records seen on pages 1-3, add new ones, never delete old ones.
     """
     if not initialized:
-        result = [
+        return [
             dict(item)
             for item in current_items
-            if isinstance(item, dict)
         ]
-        return result
 
     result = []
     by_url = {}
-    by_title = {}
 
     for old in old_items:
         if not isinstance(old, dict):
@@ -575,33 +742,23 @@ def merge_history(old_items, current_items, initialized):
         copy = dict(old)
         result.append(copy)
 
-        url = normalize_url(
-            copy.get("sourceUrl") or copy.get("url", "")
-        ).lower()
-        title = clean_text(
-            copy.get("title", "")
+        key = normalize_url(
+            copy.get("sourceUrl")
+            or copy.get("url", "")
         ).lower()
 
-        if url:
-            by_url[url] = copy
-        if title:
-            by_title[title] = copy
+        if key:
+            by_url[key] = copy
 
     for fresh in current_items:
-        url_key = normalize_url(
-            fresh.get("sourceUrl") or fresh.get("url", "")
-        ).lower()
-        title_key = clean_text(
-            fresh.get("title", "")
+        key = normalize_url(
+            fresh.get("sourceUrl")
+            or fresh.get("url", "")
         ).lower()
 
-        existing = (
-            by_url.get(url_key)
-            or by_title.get(title_key)
-        )
+        existing = by_url.get(key)
 
-        if existing is not None:
-            # Preserve the user's participation/result fields.
+        if existing:
             participation = existing.get(
                 "participating",
                 False
@@ -614,6 +771,10 @@ def merge_history(old_items, current_items, initialized):
                 "resultDate",
                 ""
             )
+            title_zh = existing.get(
+                "titleZh",
+                ""
+            )
 
             existing.clear()
             existing.update(fresh)
@@ -622,31 +783,48 @@ def merge_history(old_items, current_items, initialized):
                 participation
             )
             existing["result"] = (
-                result_value or "pending"
+                result_value
+                or "pending"
             )
             existing["resultDate"] = (
-                result_date or ""
+                result_date
+                or ""
             )
+
+            if not existing.get("titleZh"):
+                existing["titleZh"] = title_zh
+
         else:
-            result.append(dict(fresh))
+            result.append(
+                dict(fresh)
+            )
 
     return result
 
 
 def save_json(items):
-    # Sort by the actual date, ignoring the publication marker.
-    def sort_key(item):
-        return (
-            str(item.get("deadline", "")).rstrip("*"),
-            clean_text(item.get("title", "")).lower(),
-        )
-
-    items.sort(key=sort_key)
+    items.sort(
+        key=lambda item: (
+            str(
+                item.get(
+                    "deadline",
+                    ""
+                )
+            ).rstrip("*"),
+            clean_text(
+                item.get(
+                    "title",
+                    ""
+                )
+            ).lower(),
+        ),
+        reverse=True,
+    )
 
     with open(
         "competitions.json",
         "w",
-        encoding="utf-8",
+        encoding="utf-8"
     ) as file:
         json.dump(
             items,
@@ -661,20 +839,39 @@ def main():
     print("")
     print("======================================")
     print("PosterTerritory 3-page accumulator")
-    print("Pages scanned per update:", PAGES_TO_SCAN)
+    print("Pages scanned:", PAGES_TO_SCAN)
+    print("Date cutoff: NONE")
     print("======================================")
 
     old_items = load_json_list(
         "competitions.json"
     )
+
     state = load_state()
 
-    raw_posts = collect_first_three_pages()
+    initialized = (
+        state.get("initialized") is True
+        and state.get("accumulatorVersion")
+        == ACCUMULATOR_VERSION
+    )
+
+    posts = collect_first_three_pages()
 
     current_items = []
 
-    for post in raw_posts:
+    for post in posts:
+        if not should_include_post(
+            post.get("title", ""),
+            post.get("text", ""),
+        ):
+            print(
+                "SKIP - obvious non-competition/editorial:",
+                post.get("title", ""),
+            )
+            continue
+
         item = make_item(post)
+
         if item is None:
             print(
                 "SKIP - no publication date:",
@@ -684,20 +881,22 @@ def main():
 
         current_items.append(item)
 
-    initialized = bool(
-        state.get("initialized", False)
-    )
+    # Enrich the current batch with official links and translations.
+    for item in current_items:
+        print(
+            "Enriching:",
+            item["title"]
+        )
 
-    if not initialized:
-        print("")
-        print(
-            "FIRST RUN: rebuilding from current first three pages."
+        item["officialUrl"] = find_official_url(
+            item["sourceUrl"]
         )
-    else:
-        print("")
-        print(
-            "ACCUMULATE MODE: upserting current first three pages."
+
+        item["titleZh"] = translate_title_zh(
+            item["title"]
         )
+
+        time.sleep(0.35)
 
     merged = merge_history(
         old_items,
@@ -710,14 +909,29 @@ def main():
         old_items,
     )
 
-    save_json(merged)
+    save_json(
+        merged
+    )
+
     save_state()
 
     print("")
     print("======================================")
     print("SUCCESS")
-    print("Current first-three-page entries:", len(current_items))
-    print("Saved total entries:", len(merged))
+    print(
+        "Current page-1-to-3 entries:",
+        len(current_items)
+    )
+    print(
+        "Saved total entries:",
+        len(merged)
+    )
+    print(
+        "Mode:",
+        "ACCUMULATE"
+        if initialized
+        else "FRESH 3-PAGE SEED",
+    )
     print("======================================")
 
 
