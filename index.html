@@ -316,8 +316,87 @@ button.active{
 
 
 /* =====================================================
+   AUTH
+===================================================== */
+
+.authBar{
+
+  margin-top:10px;
+
+  display:flex;
+
+  align-items:center;
+
+  justify-content:flex-end;
+
+  gap:8px;
+
+  color:#777;
+
+  font-size:12px;
+
+}
+
+.authBar button{
+
+  width:auto;
+
+}
+
+.authMessage{
+
+  margin-top:10px;
+
+  color:#c62828;
+
+  font-size:12px;
+
+}
+
+#authDlg label{
+
+  display:block;
+
+  margin:12px 0 6px;
+
+  font-size:13px;
+
+  color:#555;
+
+}
+
+#authDlg input{
+
+  display:block;
+
+  width:100%;
+
+  box-sizing:border-box;
+
+  margin-top:5px;
+
+  padding:9px 10px;
+
+  border:1px solid #ccc;
+
+  border-radius:7px;
+
+  font:inherit;
+
+}
+
+#authDlg #authSubmit{
+
+  margin-top:14px;
+
+}
+
+
+/* =====================================================
    DELETE
 ===================================================== */
+
+
 
 .deleteBtn{
 
@@ -491,6 +570,7 @@ dialog button{
 
 </style>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 
@@ -612,6 +692,72 @@ dialog button{
 
 </div>
 
+<div
+  id="authBar"
+  class="authBar">
+
+  <span id="authStatus">
+    尚未登入，個人資料不會跨裝置同步。
+  </span>
+
+  <button
+    id="loginBtn"
+    type="button">
+    ☁ 登入同步
+  </button>
+
+  <button
+    id="logoutBtn"
+    type="button"
+    style="display:none;">
+    登出
+  </button>
+
+</div>
+
+
+<dialog id="authDlg">
+
+  <button
+    class="close"
+    id="authClose">
+    ×
+  </button>
+
+  <h3>登入 Tracker</h3>
+
+  <label>
+    Email
+    <input
+      id="authEmail"
+      type="email"
+      autocomplete="email"
+      placeholder="你的 Email">
+  </label>
+
+  <label>
+    密碼
+    <input
+      id="authPassword"
+      type="password"
+      autocomplete="current-password"
+      placeholder="你的密碼">
+  </label>
+
+  <button
+    id="authSubmit"
+    type="button">
+    登入
+  </button>
+
+  <div
+    id="authMessage"
+    class="authMessage">
+  </div>
+
+</dialog>
+
+
 
 <!-- =====================================================
      STATUS
@@ -722,7 +868,7 @@ dialog button{
 
   <br>
 
-  每筆比賽右側「×」可將項目從本機 Tracker 隱藏；
+  每筆比賽右側「×」可將項目隱藏；
   「↶ 恢復已刪除」可以恢復。
 
 </div>
@@ -806,10 +952,33 @@ dialog button{
 ===================================================== */
 
 const KEY =
-  'jheng-poster-v8';
+  'jheng-poster-v8-local-cache';
 
 const HIDDEN_KEY =
-  'jheng-poster-hidden-v1';
+  'jheng-poster-hidden-v1-local-cache';
+
+/*
+  Supabase client configuration.
+  This is the browser-safe publishable key.
+*/
+const SUPABASE_URL =
+  'https://vsosxpercxkciftdmznb.supabase.co';
+
+const SUPABASE_PUBLISHABLE_KEY =
+  'sb_publishable_WTncl_tAjUhbasXZ0VRkkg_bIoQytrN';
+
+const supabaseClient =
+  window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY,
+    {
+      auth:{
+        persistSession:true,
+        autoRefreshToken:true,
+        detectSessionInUrl:true
+      }
+    }
+  );
 
 
 const BACKEND_URL =
@@ -822,9 +991,15 @@ let filter = 'all';
 
 let editing = null;
 
+let currentUser = null;
+
+let cloudState = new Map();
+
+let cloudSyncReady = false;
+
 
 /* =====================================================
-   HIDDEN / DELETED COMPETITIONS
+   HIDDEN / DELETED COMPETITIONS + CLOUD SYNC
 ===================================================== */
 
 function normalizeIgnoreKey(item){
@@ -843,7 +1018,7 @@ function normalizeIgnoreKey(item){
 }
 
 
-function getHiddenKeys(){
+function localHiddenKeys(){
 
   try{
 
@@ -861,13 +1036,7 @@ function getHiddenKeys(){
     );
 
   }
-
   catch(error){
-
-    console.error(
-      'Hidden list error:',
-      error
-    );
 
     return new Set();
 
@@ -876,7 +1045,7 @@ function getHiddenKeys(){
 }
 
 
-function saveHiddenKeys(keys){
+function saveLocalHiddenKeys(keys){
 
   localStorage.setItem(
     HIDDEN_KEY,
@@ -890,45 +1059,397 @@ function saveHiddenKeys(keys){
 
 function isHidden(item){
 
-  return getHiddenKeys().has(
-    normalizeIgnoreKey(item)
+  const key =
+    normalizeIgnoreKey(item);
+
+  if(
+    cloudSyncReady &&
+    cloudState.has(key)
+  ){
+
+    return !!cloudState.get(key).hidden;
+
+  }
+
+  return localHiddenKeys().has(key);
+
+}
+
+
+async function loadCloudState(){
+
+  if(!currentUser)
+    return;
+
+  const {
+    data: rows,
+    error
+  } =
+    await supabaseClient
+      .from('tracker_user_data')
+      .select(
+        'competition_id,participating,result,hidden,updated_at'
+      );
+
+  if(error){
+
+    console.error(
+      'Cloud state load failed:',
+      error
+    );
+
+    cloudSyncReady = false;
+
+    return;
+
+  }
+
+  cloudState =
+    new Map(
+      (rows || []).map(
+        row => [
+          String(
+            row.competition_id
+          ),
+          row
+        ]
+      )
+    );
+
+  cloudSyncReady = true;
+
+}
+
+
+function readLocalUserState(){
+
+  try{
+
+    return JSON.parse(
+      localStorage.getItem(
+        KEY
+      ) || '{}'
+    );
+
+  }
+  catch(error){
+
+    return {};
+
+  }
+
+}
+
+
+function writeLocalUserState(){
+
+  const saved = {};
+
+  data.forEach(item => {
+
+    saved[
+      normalizeIgnoreKey(item)
+    ] = {
+
+      participating:
+        !!item.participating,
+
+      result:
+        item.result ||
+        'pending'
+
+    };
+
+  });
+
+  localStorage.setItem(
+    KEY,
+    JSON.stringify(saved)
   );
 
 }
 
 
-function hideCompetition(item){
+async function upsertCloudState(item){
+
+  if(
+    !currentUser ||
+    !cloudSyncReady
+  )
+    return false;
 
   const key =
     normalizeIgnoreKey(item);
 
   if(!key)
-    return;
+    return false;
 
-  const keys =
-    getHiddenKeys();
+  const existing =
+    cloudState.get(key) || {};
 
-  keys.add(key);
+  const row = {
 
-  saveHiddenKeys(keys);
+    user_id:
+      currentUser.id,
+
+    competition_id:
+      key,
+
+    participating:
+      !!item.participating,
+
+    result:
+      item.result ||
+      'pending',
+
+    hidden:
+      !!existing.hidden,
+
+    updated_at:
+      new Date().toISOString()
+
+  };
+
+  const {
+    error
+  } =
+    await supabaseClient
+      .from('tracker_user_data')
+      .upsert(
+        row,
+        {
+          onConflict:
+            'user_id,competition_id'
+        }
+      );
+
+  if(error){
+
+    console.error(
+      'Cloud save failed:',
+      error
+    );
+
+    return false;
+
+  }
+
+  cloudState.set(
+    key,
+    row
+  );
+
+  return true;
 
 }
 
 
-function restoreCompetition(item){
+async function setCloudHidden(
+  item,
+  hidden
+){
+
+  if(
+    !currentUser ||
+    !cloudSyncReady
+  )
+    return false;
 
   const key =
     normalizeIgnoreKey(item);
 
   if(!key)
-    return;
+    return false;
 
-  const keys =
-    getHiddenKeys();
+  const existing =
+    cloudState.get(key) || {};
 
-  keys.delete(key);
+  const row = {
 
-  saveHiddenKeys(keys);
+    user_id:
+      currentUser.id,
+
+    competition_id:
+      key,
+
+    participating:
+      !!item.participating,
+
+    result:
+      item.result ||
+      'pending',
+
+    hidden:
+      !!hidden,
+
+    updated_at:
+      new Date().toISOString()
+
+  };
+
+  const {
+    error
+  } =
+    await supabaseClient
+      .from('tracker_user_data')
+      .upsert(
+        row,
+        {
+          onConflict:
+            'user_id,competition_id'
+        }
+      );
+
+  if(error){
+
+    console.error(
+      'Cloud hidden save failed:',
+      error
+    );
+
+    return false;
+
+  }
+
+  cloudState.set(
+    key,
+    row
+  );
+
+  return true;
+
+}
+
+
+async function mergeCloudAndLocal(){
+
+  const local =
+    readLocalUserState();
+
+  const localHidden =
+    localHiddenKeys();
+
+  const rowsToMigrate = [];
+
+  data.forEach(item => {
+
+    const key =
+      normalizeIgnoreKey(item);
+
+    const cloud =
+      cloudState.get(key);
+
+    if(cloud){
+
+      item.participating =
+        !!cloud.participating;
+
+      item.result =
+        cloud.result ||
+        'pending';
+
+      return;
+
+    }
+
+    const saved =
+      local[key];
+
+    item.participating =
+      !!(
+        saved &&
+        saved.participating
+      );
+
+    item.result =
+      (
+        saved &&
+        saved.result
+      ) ||
+      item.result ||
+      'pending';
+
+    const hidden =
+      localHidden.has(key);
+
+    if(
+      currentUser &&
+      (
+        item.participating ||
+        item.result !== 'pending' ||
+        hidden
+      )
+    ){
+
+      rowsToMigrate.push({
+
+        user_id:
+          currentUser.id,
+
+        competition_id:
+          key,
+
+        participating:
+          item.participating,
+
+        result:
+          item.result,
+
+        hidden,
+
+        updated_at:
+          new Date().toISOString()
+
+      });
+
+    }
+
+  });
+
+  if(
+    currentUser &&
+    rowsToMigrate.length
+  ){
+
+    const {
+      error
+    } =
+      await supabaseClient
+        .from(
+          'tracker_user_data'
+        )
+        .upsert(
+          rowsToMigrate,
+          {
+            onConflict:
+              'user_id,competition_id'
+          }
+        );
+
+    if(error){
+
+      console.error(
+        'Initial local-to-cloud migration failed:',
+        error
+      );
+
+    }
+    else{
+
+      rowsToMigrate.forEach(
+        row => {
+
+          cloudState.set(
+            row.competition_id,
+            row
+          );
+
+        }
+      );
+
+    }
+
+  }
 
 }
 
@@ -936,6 +1457,7 @@ function restoreCompetition(item){
 /* =====================================================
    DOM
 ===================================================== */
+
 
 
 const list =
@@ -1174,22 +1696,12 @@ async function load(){
   statusMain.className =
     'statusMain loading';
 
-
   statusMain.textContent =
     '● 正在讀取最新資料……';
 
-
-  statusCount.textContent =
-    '';
-
-
-  statusSep.textContent =
-    '';
-
-
-  statusTime.textContent =
-    '';
-
+  statusCount.textContent = '';
+  statusSep.textContent = '';
+  statusTime.textContent = '';
 
   try{
 
@@ -1197,12 +1709,10 @@ async function load(){
       await fetch(
         'competitions.json?ts=' +
         Date.now(),
-
         {
           cache:'no-store'
         }
       );
-
 
     if(!response.ok){
 
@@ -1213,10 +1723,8 @@ async function load(){
 
     }
 
-
     const fresh =
       await response.json();
-
 
     if(!Array.isArray(fresh)){
 
@@ -1226,127 +1734,71 @@ async function load(){
 
     }
 
-
-    /*
-      讀取瀏覽器保存的
-      參加／結果資料
-    */
-
-    const old =
-      JSON.parse(
-        localStorage.getItem(
-          KEY
-        ) || '{}'
-      );
-
-
-    /*
-      合併後端資料
-      與使用者自己的紀錄
-    */
-
     data =
-      fresh.map(item => {
-
-        const saved =
-          old[item.title] || {};
-
-
-        return {
-
+      fresh.map(
+        item => ({
           ...item,
-
-          participating:
-            !!saved.participating,
-
+          participating:false,
           result:
-            saved.result ||
             item.result ||
             'pending'
+        })
+      );
 
-        };
+    if(currentUser){
 
-      });
+      await loadCloudState();
 
+    }
 
-    /*
-      Deadline：
-
-      最新
-      ↓
-      最舊
-    */
+    await mergeCloudAndLocal();
 
     data.sort(
-      (a,b) => {
-
-        const dateA = sortDate(a.deadline);
-
-
-        const dateB = sortDate(b.deadline);
-
-
-        return dateB - dateA;
-
-      }
+      (a,b) =>
+        sortDate(b.deadline) -
+        sortDate(a.deadline)
     );
 
-
     render();
-
 
     statusMain.className =
       'statusMain';
 
-
     statusMain.textContent =
-      '● 已載入最新資料';
-
+      currentUser && cloudSyncReady
+        ? '● 已載入最新資料・雲端同步'
+        : '● 已載入最新資料';
 
     statusCount.textContent =
       data.length +
       ' 場比賽';
 
-
-    statusSep.textContent =
-      '|';
-
+    statusSep.textContent = '|';
 
     statusTime.textContent =
       '最後讀取：' +
       fmtTime(new Date());
 
-
   }
-
   catch(error){
 
     console.error(error);
 
-
     statusMain.className =
       'statusMain error';
-
 
     statusMain.textContent =
       '● 無法讀取最新資料';
 
-
     statusCount.textContent =
       '請確認 competitions.json';
 
-
-    statusSep.textContent =
-      '';
-
-
-    statusTime.textContent =
-      '';
+    statusSep.textContent = '';
+    statusTime.textContent = '';
 
   }
 
 }
-
 
 /* =====================================================
    SAVE
@@ -1354,28 +1806,29 @@ async function load(){
 
 function persist(){
 
-  const saved = {};
+  writeLocalUserState();
+
+}
 
 
-  data.forEach(item => {
+async function persistOne(item){
 
-    saved[item.title] = {
+  writeLocalUserState();
 
-      participating:
-        item.participating,
+  if(
+    currentUser &&
+    cloudSyncReady
+  ){
 
-      result:
-        item.result
+    const ok =
+      await upsertCloudState(item);
 
-    };
+    if(!ok)
+      return false;
 
-  });
+  }
 
-
-  localStorage.setItem(
-    KEY,
-    JSON.stringify(saved)
-  );
+  return true;
 
 }
 
@@ -1620,7 +2073,7 @@ function render(){
     .querySelectorAll('.check')
     .forEach(check => {
 
-      check.onchange = () => {
+      check.onchange = async () => {
 
         const item =
           data.find(
@@ -1638,7 +2091,7 @@ function render(){
           check.checked;
 
 
-        persist();
+        await persistOne(item);
 
 
         render();
@@ -1658,7 +2111,7 @@ function render(){
     )
     .forEach(button => {
 
-      button.onclick = () => {
+      button.onclick = async () => {
 
         const item =
           data.find(
@@ -1680,6 +2133,26 @@ function render(){
           return;
 
         hideCompetition(item);
+
+        if(currentUser){
+
+          const ok =
+            await setCloudHidden(
+              item,
+              true
+            );
+
+          if(!ok){
+
+            window.alert(
+              '雲端同步失敗，請稍後再試。'
+            );
+
+            return;
+
+          }
+
+        }
 
         render();
 
@@ -1827,7 +2300,7 @@ document
   )
   .forEach(button => {
 
-    button.onclick = () => {
+    button.onclick = async () => {
 
       if(!editing)
         return;
@@ -1837,7 +2310,7 @@ document
         button.dataset.result;
 
 
-      persist();
+      await persistOne(editing);
 
 
       dlg.close();
@@ -1873,7 +2346,7 @@ document
   .getElementById(
     'restoreHidden'
   )
-  .onclick = () => {
+  .onclick = async () => {
 
     const keys =
       getHiddenKeys();
@@ -1945,6 +2418,26 @@ document
       hiddenItems[index - 1]
     );
 
+    if(currentUser){
+
+      const ok =
+        await setCloudHidden(
+          hiddenItems[index - 1],
+          false
+        );
+
+      if(!ok){
+
+        window.alert(
+          '雲端同步失敗，請稍後再試。'
+        );
+
+        return;
+
+      }
+
+    }
+
     render();
 
   };
@@ -1984,10 +2477,287 @@ document
 
 
 /* =====================================================
+   AUTHENTICATION / CLOUD SYNC
+===================================================== */
+
+const authDlg =
+  document.getElementById(
+    'authDlg'
+  );
+
+const authEmail =
+  document.getElementById(
+    'authEmail'
+  );
+
+const authPassword =
+  document.getElementById(
+    'authPassword'
+  );
+
+const authMessage =
+  document.getElementById(
+    'authMessage'
+  );
+
+const authStatus =
+  document.getElementById(
+    'authStatus'
+  );
+
+const loginBtn =
+  document.getElementById(
+    'loginBtn'
+  );
+
+const logoutBtn =
+  document.getElementById(
+    'logoutBtn'
+  );
+
+
+function updateAuthUI(){
+
+  if(currentUser){
+
+    authStatus.textContent =
+      '● 已登入・雲端同步中';
+
+    loginBtn.style.display =
+      'none';
+
+    logoutBtn.style.display =
+      '';
+
+  }
+  else{
+
+    authStatus.textContent =
+      '尚未登入，個人資料不會跨裝置同步。';
+
+    loginBtn.style.display =
+      '';
+
+    logoutBtn.style.display =
+      'none';
+
+  }
+
+}
+
+
+loginBtn.onclick = () => {
+
+  authMessage.textContent = '';
+
+  authEmail.value = '';
+
+  authPassword.value = '';
+
+  authDlg.showModal();
+
+};
+
+
+document
+  .getElementById(
+    'authClose'
+  )
+  .onclick = () => {
+
+    authDlg.close();
+
+  };
+
+
+document
+  .getElementById(
+    'authSubmit'
+  )
+  .onclick = async () => {
+
+    const email =
+      authEmail.value.trim();
+
+    const password =
+      authPassword.value;
+
+    if(
+      !email ||
+      !password
+    ){
+
+      authMessage.textContent =
+        '請輸入 Email 與密碼。';
+
+      return;
+
+    }
+
+    authMessage.textContent =
+      '登入中……';
+
+    const {
+      data: result,
+      error
+    } =
+      await supabaseClient.auth
+        .signInWithPassword(
+          {
+            email,
+            password
+          }
+        );
+
+    if(error){
+
+      authMessage.textContent =
+        '登入失敗：' +
+        error.message;
+
+      return;
+
+    }
+
+    currentUser =
+      result.user;
+
+    updateAuthUI();
+
+    authDlg.close();
+
+    await load();
+
+  };
+
+
+logoutBtn.onclick =
+  async () => {
+
+    const {
+      error
+    } =
+      await supabaseClient.auth
+        .signOut();
+
+    if(error){
+
+      console.error(
+        'Sign out failed:',
+        error
+      );
+
+      return;
+
+    }
+
+    currentUser = null;
+
+    cloudState =
+      new Map();
+
+    cloudSyncReady = false;
+
+    data =
+      data.map(
+        item => ({
+          ...item,
+          participating:false,
+          result:'pending'
+        })
+      );
+
+    updateAuthUI();
+
+    render();
+
+  };
+
+
+supabaseClient.auth
+  .onAuthStateChange(
+    async (
+      event,
+      session
+    ) => {
+
+      if(session){
+
+        currentUser =
+          session.user;
+
+        updateAuthUI();
+
+        if(
+          event === 'SIGNED_IN' ||
+          event === 'INITIAL_SESSION'
+        ){
+
+          await load();
+
+        }
+
+      }
+      else if(
+        event === 'SIGNED_OUT'
+      ){
+
+        currentUser = null;
+
+        cloudState =
+          new Map();
+
+        cloudSyncReady =
+          false;
+
+        updateAuthUI();
+
+        await load();
+
+      }
+
+    }
+  );
+
+
+async function initializeAuth(){
+
+  const {
+    data
+  } =
+    await supabaseClient.auth
+      .getSession();
+
+  currentUser =
+    data.session
+      ? data.session.user
+      : null;
+
+  updateAuthUI();
+
+}
+
+
+/* =====================================================
    INITIAL LOAD
 ===================================================== */
 
-load();
+initializeAuth()
+  .then(
+    () => load()
+  )
+  .catch(
+    error => {
+
+      console.error(
+        'Auth initialization failed:',
+        error
+      );
+
+      load();
+
+    }
+  );
 
 </script>
 
