@@ -997,6 +997,8 @@ let cloudState = new Map();
 
 let cloudSyncReady = false;
 
+let hiddenItemsRegistry = new Map();
+
 
 /* =====================================================
    HIDDEN / DELETED COMPETITIONS + CLOUD SYNC
@@ -2183,6 +2185,22 @@ function render(){
 
         hideCompetition(item);
 
+        /*
+          Remove from the current in-memory list as well.
+          The Supabase record remains the cloud source of truth.
+        */
+        hiddenItemsRegistry.set(
+          normalizeIgnoreKey(item),
+          item
+        );
+
+        data =
+          data.filter(
+            x =>
+              normalizeIgnoreKey(x) !==
+              normalizeIgnoreKey(item)
+          );
+
         /* Immediately remove it from this screen. */
         render();
 
@@ -2410,12 +2428,25 @@ document
 
     }
 
+    const allKnownItems =
+      [
+        ...data,
+        ...Array.from(
+          hiddenItemsRegistry.values()
+        )
+      ];
+
     const hiddenItems =
-      data.filter(
-        item =>
+      allKnownItems.filter(
+        (item, index, array) =>
           keys.has(
             normalizeIgnoreKey(item)
-          )
+          ) &&
+          array.findIndex(
+            x =>
+              normalizeIgnoreKey(x) ===
+              normalizeIgnoreKey(item)
+          ) === index
       );
 
     if(hiddenItems.length === 0){
@@ -2489,6 +2520,28 @@ document
     target.__hidden = false;
 
     restoreCompetition(target);
+
+    if(
+      !data.some(
+        x =>
+          normalizeIgnoreKey(x) ===
+          normalizeIgnoreKey(target)
+      )
+    ){
+
+      data.push(target);
+
+      data.sort(
+        (a,b) =>
+          sortDate(b.deadline) -
+          sortDate(a.deadline)
+      );
+
+    }
+
+    hiddenItemsRegistry.delete(
+      normalizeIgnoreKey(target)
+    );
 
     render();
 
