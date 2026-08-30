@@ -803,11 +803,45 @@ function fmt(date){
     return '—';
   }
 
-  return String(date)
+  const value =
+    String(date);
+
+  const isPublished =
+    value.endsWith('*');
+
+  const cleanDate =
+    value.replace(
+      /\\*$/,
+      ''
+    );
+
+  return cleanDate
     .replaceAll(
       '-',
       '/'
-    );
+    ) +
+    (isPublished ? '*' : '');
+
+}
+
+
+/* =====================================================
+   SORT DATE
+===================================================== */
+
+function sortDate(value){
+
+  if(!value){
+    return new Date(0);
+  }
+
+  return new Date(
+    String(value)
+      .replace(
+        /\\*$/,
+        ''
+      )
+  );
 
 }
 
@@ -1068,15 +1102,11 @@ async function load(){
       (a,b) => {
 
         const dateA =
-          a.deadline
-            ? new Date(a.deadline)
-            : new Date(0);
+          sortDate(a.deadline);
 
 
         const dateB =
-          b.deadline
-            ? new Date(b.deadline)
-            : new Date(0);
+          sortDate(b.deadline);
 
 
         return dateB - dateA;
