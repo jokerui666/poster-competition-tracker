@@ -671,6 +671,19 @@ def parse_roman_date(text):
         return None
 
 
+def parse_published_date(text):
+    """Parse a publication date such as August 13, 2026."""
+    return parse_date(text)
+
+
+def format_tracker_date(iso_date, date_type="deadline"):
+    """No extra field: append * when the date is a publication-date fallback."""
+    if not iso_date:
+        return ""
+    value = str(iso_date).rstrip("*")
+    return value if date_type == "deadline" else value + "*"
+
+
 def find_deadline(text):
     """
     找比賽截止日期。
@@ -1216,6 +1229,8 @@ def build_competitions(
             text
         )
 
+        date_type = "deadline"
+
         # 有些列表摘要沒有日期，
         # 再進入文章頁面找一次
         if deadline is None:
@@ -1263,15 +1278,21 @@ def build_competitions(
                 )
 
         if deadline is None:
+            # No explicit Deadline: use publication date for sorting and
+            # mark it with * so the UI does not imply it is a deadline.
+            publication_date = parse_published_date(text)
 
-            print(
-                "SKIP - no deadline:",
-                title
-            )
+            if publication_date is None:
+                print(
+                    "SKIP - no deadline or publication date:",
+                    title
+                )
+                continue
 
-            continue
+            deadline = publication_date
+            date_type = "published"
 
-        # ----------------------------------------------------
+# ----------------------------------------------------
         # 只保留 2026/06/01 之後
         # ----------------------------------------------------
 
@@ -1320,7 +1341,7 @@ def build_competitions(
         item = {
             "title": title,
             "titleZh": title_zh,
-            "deadline": deadline.isoformat(),
+            "deadline": format_tracker_date(deadline.isoformat(), date_type),
             "resultDate": "",
             "participating": False,
             "result": "pending",
