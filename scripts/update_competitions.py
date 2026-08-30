@@ -47,30 +47,18 @@ session.headers.update(HEADERS)
 # ============================================================
 
 MONTHS = {
-    "january": 1,
-    "jan": 1,
-    "february": 2,
-    "feb": 2,
-    "march": 3,
-    "mar": 3,
-    "april": 4,
-    "apr": 4,
+    "january": 1, "jan": 1,
+    "february": 2, "feb": 2,
+    "march": 3, "mar": 3,
+    "april": 4, "apr": 4,
     "may": 5,
-    "june": 6,
-    "jun": 6,
-    "july": 7,
-    "jul": 7,
-    "august": 8,
-    "aug": 8,
-    "september": 9,
-    "sep": 9,
-    "sept": 9,
-    "october": 10,
-    "oct": 10,
-    "november": 11,
-    "nov": 11,
-    "december": 12,
-    "dec": 12,
+    "june": 6, "jun": 6,
+    "july": 7, "jul": 7,
+    "august": 8, "aug": 8,
+    "september": 9, "sep": 9, "sept": 9,
+    "october": 10, "oct": 10,
+    "november": 11, "nov": 11,
+    "december": 12, "dec": 12,
 }
 
 
@@ -684,62 +672,101 @@ def parse_roman_date(text):
 
 
 def find_deadline(text):
+    """
+    找比賽截止日期。
+
+    重要原則：
+    1. 優先且嚴格解析 Deadline / Last Deadline / Submission Deadline
+       等關鍵字「後面」的日期。
+    2. 支援完整月份與英文縮寫，例如 September / Sep / Sept。
+    3. 如果文章明確有 Deadline 關鍵字但關鍵字後沒有可解析日期，
+       不用文章發布日期或其他無關日期冒充 Deadline。
+    4. 只有完全沒有 Deadline 類關鍵字時，才退回整篇文字搜尋。
+    """
 
     text = clean_text(text)
 
-    # --------------------------------------------------------
-    # 優先找 Deadline 附近的日期
-    # --------------------------------------------------------
-
     deadline_patterns = [
-        r"deadline.{0,100}",
-        r"last deadline.{0,100}",
-        r"submission deadline.{0,100}",
-        r"closing date.{0,100}",
-        r"entries close.{0,100}",
-        r"submit.{0,100}",
+        r"last\s+deadline",
+        r"submission\s+deadline",
+        r"closing\s+date",
+        r"entries\s+close",
+        r"deadline",
+        r"submit",
     ]
 
+    date_patterns = [
+        # YYYY-MM-DD / YYYY/MM/DD
+        re.compile(
+            r"\b(2026|2027)[-/](\d{1,2})[-/](\d{1,2})\b",
+            re.IGNORECASE,
+        ),
+        # August 31, 2026 / Aug 31, 2026 / Sep 1 2026
+        re.compile(
+            r"\b"
+            r"(January|Jan|February|Feb|March|Mar|April|Apr|May|"
+            r"June|Jun|July|Jul|August|Aug|September|Sep|Sept|"
+            r"October|Oct|November|Nov|December|Dec)"
+            r"\s+(\d{1,2})(?:st|nd|rd|th)?"
+            r"(?:,\s*|\s+)"
+            r"(2026|2027)\b",
+            re.IGNORECASE,
+        ),
+        # 31 August 2026 / 31 Aug 2026
+        re.compile(
+            r"\b(\d{1,2})(?:st|nd|rd|th)?\s+"
+            r"(January|Jan|February|Feb|March|Mar|April|Apr|May|"
+            r"June|Jun|July|Jul|August|Aug|September|Sep|Sept|"
+            r"October|Oct|November|Nov|December|Dec)"
+            r"(?:,\s*|\s+)(2026|2027)\b",
+            re.IGNORECASE,
+        ),
+    ]
+
+    def parse_date_from_chunk(chunk):
+        for pattern in date_patterns:
+            match = pattern.search(chunk)
+            if not match:
+                continue
+
+            try:
+                if match.lastindex == 3:
+                    groups = match.groups()
+                    if re.fullmatch(r"\d{4}", groups[0]):
+                        year, month, day = map(int, groups)
+                    elif groups[0].isdigit():
+                        day = int(groups[0])
+                        month = MONTHS[groups[1].lower()]
+                        year = int(groups[2])
+                    else:
+                        month = MONTHS[groups[0].lower()]
+                        day = int(groups[1])
+                        year = int(groups[2])
+
+                    return date(year, month, day)
+            except (ValueError, KeyError):
+                pass
+
+        roman = parse_roman_date(chunk)
+        if roman:
+            return roman
+
+        return None
+
+    found_deadline_keyword = False
+
+    # 只解析關鍵字後面的區域，避免抓到文章發布日期。
     for pattern in deadline_patterns:
-
-        matches = re.findall(
-            pattern,
-            text,
-            flags=re.IGNORECASE
-        )
-
-        for chunk in matches:
-
-            result = parse_date(
-                chunk
-            )
-
+        for match in re.finditer(pattern, text, flags=re.IGNORECASE):
+            found_deadline_keyword = True
+            chunk = text[match.end():match.end() + 140]
+            result = parse_date_from_chunk(chunk)
             if result:
                 return result
 
-            result = parse_roman_date(
-                chunk
-            )
-
-            if result:
-                return result
-
-    # --------------------------------------------------------
-    # 整段文字搜尋
-    # --------------------------------------------------------
-
-    result = parse_date(
-        text
-    )
-
-    if result:
-        return result
-
-    result = parse_roman_date(
-        text
-    )
-
-    return result
+    # 沒有 Deadline 類關鍵字時，不用文章中的其他日期冒充截止日。
+    # 例如文章發布日 August 28, 2026 不得被當成 Deadline。
+    return None
 
 
 # ============================================================
