@@ -1321,123 +1321,93 @@ async function setCloudHidden(
   hidden
 ){
 
-  if(!currentUser){
+  try{
 
-    return {
-      ok:false,
-      message:'尚未登入 Supabase。'
+    if(!currentUser)
+      return false;
+
+    if(!cloudSyncReady)
+      await loadCloudState();
+
+    if(!cloudSyncReady)
+      return false;
+
+    const key =
+      normalizeIgnoreKey(item);
+
+    if(!key)
+      return false;
+
+    const row = {
+
+      user_id:
+        currentUser.id,
+
+      competition_id:
+        key,
+
+      participating:
+        !!item.participating,
+
+      result:
+        item.result ||
+        'pending',
+
+      hidden:
+        !!hidden,
+
+      updated_at:
+        new Date().toISOString()
+
     };
 
-  }
+    const {
+      error
+    } =
+      await supabaseClient
+        .from(
+          'tracker_user_data'
+        )
+        .upsert(
+          row,
+          {
+            onConflict:
+              'user_id,competition_id'
+          }
+        );
 
-  if(!cloudSyncReady){
+    if(error){
 
-    await loadCloudState();
-
-  }
-
-  if(!cloudSyncReady){
-
-    return {
-      ok:false,
-      message:'無法連線到 Supabase。'
-    };
-
-  }
-
-  const key =
-    normalizeIgnoreKey(item);
-
-  if(!key){
-
-    return {
-      ok:false,
-      message:'找不到這筆比賽的識別網址。'
-    };
-
-  }
-
-  const existing =
-    cloudState.get(key) || {};
-
-  const row = {
-
-    user_id:
-      currentUser.id,
-
-    competition_id:
-      key,
-
-    participating:
-      !!item.participating,
-
-    result:
-      item.result ||
-      'pending',
-
-    hidden:
-      !!hidden,
-
-    updated_at:
-      new Date().toISOString()
-
-  };
-
-  const {
-    error
-  } =
-    await supabaseClient
-      .from('tracker_user_data')
-      .upsert(
-        row,
-        {
-          onConflict:
-            'user_id,competition_id'
-        }
+      console.error(
+        'Cloud hidden save failed:',
+        error
       );
 
-  if(error){
+      return false;
+
+    }
+
+    cloudState.set(
+      key,
+      row
+    );
+
+    item.__hidden =
+      !!hidden;
+
+    return true;
+
+  }
+  catch(error){
 
     console.error(
-      'Cloud hidden save failed:',
+      'Cloud hidden save exception:',
       error
     );
 
-    return {
-      ok:false,
-      message:
-        `${error.message || 'Supabase 寫入失敗'}`
-        + (
-          error.code
-            ? ` (code ${error.code})`
-            : ''
-        )
-    };
+    return false;
 
   }
-
-  cloudState.set(
-    key,
-    row
-  );
-
-  if(!hidden){
-
-    const localKeys =
-      localHiddenKeys();
-
-    localKeys.delete(key);
-
-    saveLocalHiddenKeys(
-      localKeys
-    );
-
-  }
-
-  return {
-    ok:true,
-    message:''
-  };
 
 }
 
@@ -1468,6 +1438,10 @@ async function mergeCloudAndLocal(){
       item.result =
         cloud.result ||
         'pending';
+
+      item.__hidden =
+        !!cloud.hidden ||
+        localHidden.has(key);
 
       return;
 
@@ -1993,6 +1967,9 @@ async function handleDeleteClick(event){
   if(!ok)
     return;
 
+  /*
+    Local state first: the row is hidden even if cloud sync is unavailable.
+  */
   item.__hidden = true;
 
   hideCompetition(item);
@@ -2002,22 +1979,13 @@ async function handleDeleteClick(event){
     item
   );
 
-  /*
-    Remove the exact row from the DOM immediately.
-    Do not call render() here.
-  */
   const row =
     button.closest('.row');
 
   if(row){
-
     row.remove();
-
   }
 
-  /*
-    Remove it from the current in-memory list.
-  */
   data =
     data.filter(
       x =>
@@ -2025,27 +1993,20 @@ async function handleDeleteClick(event){
     );
 
   /*
-    Sync to Supabase after the visual removal.
+    Cloud sync is best-effort. Do not block or re-render the page based on it.
   */
   if(currentUser){
 
-    const cloudResult =
+    const synced =
       await setCloudHidden(
         item,
         true
       );
 
-    if(!cloudResult.ok){
+    if(!synced){
 
-      console.error(
-        '刪除同步失敗：',
-        cloudResult.message
-      );
-
-      window.alert(
-        '這筆比賽已從目前畫面刪除。\n' +
-        '但雲端同步尚未完成：\n\n' +
-        cloudResult.message
+      console.warn(
+        '本次刪除已保存在本機，但尚未同步到 Supabase。'
       );
 
     }
