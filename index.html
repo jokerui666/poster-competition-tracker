@@ -997,8 +997,6 @@ let cloudState = new Map();
 
 let cloudSyncReady = false;
 
-let hiddenItemsRegistry = new Map();
-
 
 /* =====================================================
    HIDDEN / DELETED COMPETITIONS + CLOUD SYNC
@@ -1059,20 +1057,82 @@ function saveLocalHiddenKeys(keys){
 }
 
 
-function isHidden(item){
+async function deleteCompetitionByKey(key){
 
-  if(
-    item &&
-    item.__hidden === true
-  ){
+  const item =
+    data.find(
+      x =>
+        normalizeIgnoreKey(x) ===
+        key
+    );
 
-    return true;
+  if(!item)
+    return;
+
+  const ok =
+    window.confirm(
+      `確定要刪除「${item.title}」嗎？\n\n` +
+      `刪除後這筆比賽將不再顯示。`
+    );
+
+  if(!ok)
+    return;
+
+  /*
+    Mark the row hidden and remove it from the active data array.
+    This path is independent of item.participating.
+  */
+  item.__hidden = true;
+
+  hideCompetition(item);
+
+  hiddenItemsRegistry.set(
+    key,
+    item
+  );
+
+  data =
+    data.filter(
+      x =>
+        normalizeIgnoreKey(x) !==
+        key
+    );
+
+  render();
+
+  if(currentUser){
+
+    const cloudResult =
+      await setCloudHidden(
+        item,
+        true
+      );
+
+    if(!cloudResult.ok){
+
+      window.alert(
+        '這筆比賽已從目前畫面隱藏，\n' +
+        '但雲端同步尚未完成：\n\n' +
+        cloudResult.message
+      );
+
+    }
 
   }
+
+}
+
+
+function isHidden(item){
 
   const key =
     normalizeIgnoreKey(item);
 
+  /*
+    Local hidden state is an immediate UI action. Cloud hidden=true is also
+    authoritative. We deliberately do not let an existing cloud hidden=false
+    row override a just-clicked local hide.
+  */
   if(
     localHiddenKeys().has(key)
   ){
@@ -1134,23 +1194,6 @@ async function loadCloudState(){
         ]
       )
     );
-
-  data.forEach(item => {
-
-    const key =
-      normalizeIgnoreKey(item);
-
-    const row =
-      cloudState.get(key);
-
-    if(row){
-
-      item.__hidden =
-        !!row.hidden;
-
-    }
-
-  });
 
   cloudSyncReady = true;
 
@@ -2093,7 +2136,7 @@ function render(){
             <button
               class="deleteBtn"
               type="button"
-              data-delete-id="${esc(normalizeIgnoreKey(item))}"
+              onclick="deleteCompetitionByKey('${esc(normalizeIgnoreKey(item))}')"
               title="刪除這筆比賽"
               aria-label="刪除這筆比賽"
             >
@@ -2148,85 +2191,6 @@ function render(){
       };
 
     });
-
-
-  /* ===================================================
-     DELETE / HIDE BUTTON
-  =================================================== */
-
-  document
-    .querySelectorAll(
-      '[data-delete-id]'
-    )
-    .forEach(button => {
-
-      button.onclick = async () => {
-
-        const item =
-          data.find(
-            x =>
-              normalizeIgnoreKey(x) ===
-              button.dataset.deleteId
-          );
-
-        if(!item)
-          return;
-
-        const ok =
-          window.confirm(
-            `確定要刪除「${item.title}」嗎？\n\n` +
-            `刪除後這筆比賽將不再顯示。`
-          );
-
-        if(!ok)
-          return;
-
-        item.__hidden = true;
-
-        hideCompetition(item);
-
-        /*
-          Remove from the current in-memory list as well.
-          The Supabase record remains the cloud source of truth.
-        */
-        hiddenItemsRegistry.set(
-          normalizeIgnoreKey(item),
-          item
-        );
-
-        data =
-          data.filter(
-            x =>
-              normalizeIgnoreKey(x) !==
-              normalizeIgnoreKey(item)
-          );
-
-        /* Immediately remove it from this screen. */
-        render();
-
-        if(currentUser){
-
-          const cloudOk =
-            await setCloudHidden(
-              item,
-              true
-            );
-
-          if(!cloudOk){
-
-            window.alert(
-              '這筆比賽已從目前畫面隱藏，\n' +
-              '但雲端同步失敗。請保持登入後再試一次。'
-            );
-
-          }
-
-        }
-
-      };
-
-    });
-
 
   /* ===================================================
      RESULT BUTTON
@@ -2428,25 +2392,12 @@ document
 
     }
 
-    const allKnownItems =
-      [
-        ...data,
-        ...Array.from(
-          hiddenItemsRegistry.values()
-        )
-      ];
-
     const hiddenItems =
-      allKnownItems.filter(
-        (item, index, array) =>
+      data.filter(
+        item =>
           keys.has(
             normalizeIgnoreKey(item)
-          ) &&
-          array.findIndex(
-            x =>
-              normalizeIgnoreKey(x) ===
-              normalizeIgnoreKey(item)
-          ) === index
+          )
       );
 
     if(hiddenItems.length === 0){
@@ -2517,31 +2468,7 @@ document
 
     }
 
-    target.__hidden = false;
-
     restoreCompetition(target);
-
-    if(
-      !data.some(
-        x =>
-          normalizeIgnoreKey(x) ===
-          normalizeIgnoreKey(target)
-      )
-    ){
-
-      data.push(target);
-
-      data.sort(
-        (a,b) =>
-          sortDate(b.deadline) -
-          sortDate(a.deadline)
-      );
-
-    }
-
-    hiddenItemsRegistry.delete(
-      normalizeIgnoreKey(target)
-    );
 
     render();
 
