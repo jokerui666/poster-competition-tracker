@@ -1,38 +1,5 @@
 [
   {
-    "title": "Antwerp Poster Fest",
-    "titleZh": "安特衛普海報節",
-    "deadline": "2026-06-02",
-    "resultDate": "",
-    "participating": false,
-    "result": "pending",
-    "officialUrl": "https://apf.design/open-call",
-    "sourceUrl": "https://www.posterterritory.com/antwerp-poster-fest",
-    "url": "https://www.posterterritory.com/antwerp-poster-fest"
-  },
-  {
-    "title": "Data: Forma 2026, poster call",
-    "titleZh": "資料： Forma 2026 ，海報通話",
-    "deadline": "2026-06-02",
-    "resultDate": "",
-    "participating": false,
-    "result": "pending",
-    "officialUrl": "https://posterterritory.myshopify.com",
-    "sourceUrl": "https://www.posterterritory.com/data-forma-poster-call",
-    "url": "https://www.posterterritory.com/data-forma-poster-call"
-  },
-  {
-    "title": "International Biennale of Theatre Poster",
-    "titleZh": "國際戲劇雙年展海報",
-    "deadline": "2026-06-08",
-    "resultDate": "",
-    "participating": false,
-    "result": "pending",
-    "officialUrl": "https://biennale.teatr-rzeszow.pl",
-    "sourceUrl": "https://www.posterterritory.com/international-biennale-of-theatre-poster",
-    "url": "https://www.posterterritory.com/international-biennale-of-theatre-poster"
-  },
-  {
     "title": "Golden Pin Design Award 2026",
     "titleZh": "2026年金點設計獎",
     "deadline": "2026-06-15",
@@ -152,6 +119,28 @@
     "officialUrl": "https://posterterritory.myshopify.com",
     "sourceUrl": "https://www.posterterritory.com/street-poster-krakow",
     "url": "https://www.posterterritory.com/street-poster-krakow"
+  },
+  {
+    "title": "RUWAKA International Poster Exhibition in Cirebon, Indonesia",
+    "titleZh": "印尼齊雷邦RUWAKA國際海報展",
+    "deadline": "2026-08-28",
+    "resultDate": "",
+    "participating": false,
+    "result": "pending",
+    "officialUrl": "",
+    "sourceUrl": "https://www.posterterritory.com/ruwaka-international-poster-exhibition-in-cirebon-indonesia",
+    "url": "https://www.posterterritory.com/ruwaka-international-poster-exhibition-in-cirebon-indonesia"
+  },
+  {
+    "title": "SEWUNARA. 2026 Semarang International Art & Design Festival",
+    "titleZh": "SEWUNARA. 2026三寶壟國際藝術設計節",
+    "deadline": "2026-08-28",
+    "resultDate": "",
+    "participating": false,
+    "result": "pending",
+    "officialUrl": "",
+    "sourceUrl": "https://www.posterterritory.com/sewunara-2026-semarang-international-art-design-festival",
+    "url": "https://www.posterterritory.com/sewunara-2026-semarang-international-art-design-festival"
   },
   {
     "title": "200 Posters for Carlo Collodi",
