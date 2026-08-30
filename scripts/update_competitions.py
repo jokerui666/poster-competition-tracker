@@ -15,7 +15,7 @@ from bs4 import BeautifulSoup
 
 BASE_URL = "https://www.posterterritory.com/"
 START_PAGE = "https://www.posterterritory.com/"
-CUTOFF_DATE = date(2026, 6, 1)
+CUTOFF_DATE = date(2026, 5, 1)
 
 HEADERS = {
     "User-Agent": (
@@ -738,18 +738,15 @@ def find_publication_date(text):
 
 def find_deadline(text):
     """
-    Parse a real Deadline from text.
+    Return a valid 2026/2027 deadline following a Deadline-like keyword.
 
-    Rules:
-    - Prefer dates immediately following a Deadline-like keyword.
-    - Support full month names, abbreviations, and yearless dates such as
-      "Deadline: August 31" (interpreted as 2026).
-    - A clearly stated old year (e.g. 2016) is never promoted to 2026.
-    - Never use an unrelated publication date as a Deadline.
+    A yearless date such as "Deadline: August 31" is interpreted as 2026.
+    A date explicitly belonging to another year, such as 2016, is rejected
+    and will later fall back to the publication date with '*'.
     """
     text = clean_text(text)
 
-    deadline_patterns = [
+    deadline_keywords = [
         r"last\s+deadline",
         r"submission\s+deadline",
         r"closing\s+date",
@@ -764,10 +761,9 @@ def find_deadline(text):
         r"October|Oct|November|Nov|December|Dec"
     )
 
-    full_date_patterns = [
+    full_patterns = [
         re.compile(
-            r"\b(2026|2027)[-/](\d{1,2})[-/](\d{1,2})\b",
-            re.IGNORECASE,
+            r"\b(2026|2027)[-/](\d{1,2})[-/](\d{1,2})\b"
         ),
         re.compile(
             rf"\b({month_pattern})\s+(\d{{1,2}})(?:st|nd|rd|th)?"
@@ -795,10 +791,12 @@ def find_deadline(text):
     def parse_chunk(chunk):
         candidates = []
 
-        for pattern in full_date_patterns:
+        # Prefer explicitly-year-stamped dates.
+        for pattern in full_patterns:
             for match in pattern.finditer(chunk):
                 try:
                     groups = match.groups()
+
                     if groups[0].isdigit() and len(groups[0]) == 4:
                         parsed = date(
                             int(groups[0]),
@@ -817,20 +815,36 @@ def find_deadline(text):
                             MONTHS[groups[0].lower()],
                             int(groups[1]),
                         )
-                    candidates.append((match.start(), parsed))
+
+                    candidates.append(
+                        (match.start(), parsed)
+                    )
+
                 except (ValueError, KeyError):
                     continue
 
-        # Explicit yearless date. Only infer 2026 when an explicit year is
-        # NOT immediately attached to the date. "August 31, 2016" therefore
-        # cannot fall through into the yearless rule.
+        if candidates:
+            candidates.sort(key=lambda item: item[0])
+            return candidates[0][1]
+
+        # Yearless form, e.g. "August 31".
         for pattern in yearless_patterns:
             for match in pattern.finditer(chunk):
-                following = chunk[match.end():match.end() + 12]
-                if re.match(r"\s*,?\s*(?:19|20)\d{2}\b", following):
+                following = chunk[
+                    match.end():
+                    match.end() + 12
+                ]
+
+                # "August 31, 2016" is NOT a yearless 2026 date.
+                if re.match(
+                    r"\s*,?\s*(?:19|20)\d{2}\b",
+                    following,
+                ):
                     continue
+
                 try:
                     groups = match.groups()
+
                     if groups[0].isdigit():
                         parsed = date(
                             2026,
@@ -843,25 +857,28 @@ def find_deadline(text):
                             MONTHS[groups[0].lower()],
                             int(groups[1]),
                         )
-                    candidates.append((match.start(), parsed))
+
+                    return parsed
+
                 except (ValueError, KeyError):
                     continue
-
-        if candidates:
-            candidates.sort(key=lambda item: item[0])
-            return candidates[0][1]
 
         roman = parse_roman_date(chunk)
         return roman if roman else None
 
-    # Search only after Deadline-like keywords.
-    for pattern in deadline_patterns:
-        for match in re.finditer(pattern, text, flags=re.IGNORECASE):
-            chunk = text[match.end():match.end() + 160]
+    for keyword in deadline_keywords:
+        for match in re.finditer(
+            keyword,
+            text,
+            flags=re.IGNORECASE,
+        ):
+            chunk = text[
+                match.end():
+                match.end() + 160
+            ]
+
             result = parse_chunk(chunk)
 
-            # If a deadline keyword exists but only an explicitly invalid
-            # old year follows it, do not let a later publication date win.
             if result:
                 return result
 
@@ -1019,83 +1036,188 @@ def download(url):
 # 取得文章列表
 # ============================================================
 
+def parse_publication_datetime_value(value):
+    """Parse common WordPress date/time attributes into a date."""
+    if not value:
+        return None
+
+    value = clean_text(value)
+
+    # ISO datetime/date, e.g. 2026-08-28T10:20:00+00:00
+    match = re.search(r"\b(2026|2027)-(\d{1,2})-(\d{1,2})\b", value)
+    if match:
+        try:
+            return date(
+                int(match.group(1)),
+                int(match.group(2)),
+                int(match.group(3)),
+            )
+        except ValueError:
+            pass
+
+    return parse_publication_date_text(value)
+
+
+def parse_publication_date_text(text):
+    """
+    Parse a publication date from visible page/listing text.
+    Only 2026/2027 are relevant to this tracker.
+    """
+    text = clean_text(text)
+
+    patterns = [
+        re.compile(
+            r"\b(January|Jan|February|Feb|March|Mar|April|Apr|May|"
+            r"June|Jun|July|Jul|August|Aug|September|Sep|Sept|"
+            r"October|Oct|November|Nov|December|Dec)\s+"
+            r"(\d{1,2})(?:st|nd|rd|th)?(?:,\s*|\s+)(2026|2027)\b",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"\b(\d{1,2})(?:st|nd|rd|th)?\s+"
+            r"(January|Jan|February|Feb|March|Mar|April|Apr|May|"
+            r"June|Jun|July|Jul|August|Aug|September|Sep|Sept|"
+            r"October|Oct|November|Nov|December|Dec)(?:,\s*|\s+)"
+            r"(2026|2027)\b",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"\b(2026|2027)[-/](\d{1,2})[-/](\d{1,2})\b"
+        ),
+    ]
+
+    for index, pattern in enumerate(patterns):
+        match = pattern.search(text)
+        if not match:
+            continue
+
+        try:
+            groups = match.groups()
+
+            if index == 0:
+                return date(
+                    int(groups[2]),
+                    MONTHS[groups[0].lower()],
+                    int(groups[1]),
+                )
+
+            if index == 1:
+                return date(
+                    int(groups[2]),
+                    MONTHS[groups[1].lower()],
+                    int(groups[0]),
+                )
+
+            return date(
+                int(groups[0]),
+                int(groups[1]),
+                int(groups[2]),
+            )
+
+        except (ValueError, KeyError):
+            continue
+
+    return None
+
+
+def extract_publication_date(container):
+    """
+    Prefer WordPress's explicit <time> element. Fall back to visible text.
+    """
+    time_element = container.find("time")
+
+    if time_element:
+        for attr in ("datetime", "dateTime", "content"):
+            parsed = parse_publication_datetime_value(
+                time_element.get(attr, "")
+            )
+            if parsed:
+                return parsed
+
+        parsed = parse_publication_datetime_value(
+            time_element.get_text(" ", strip=True)
+        )
+        if parsed:
+            return parsed
+
+    # WordPress listing pages often expose the publication date near the card.
+    candidates = [
+        container.find(
+            class_=re.compile(
+                r"(entry-date|published|post-date|posted)",
+                re.IGNORECASE,
+            )
+        ),
+        container.find(
+            attrs={
+                "itemprop": "datePublished"
+            }
+        ),
+    ]
+
+    for candidate in candidates:
+        if not candidate:
+            continue
+
+        parsed = parse_publication_datetime_value(
+            candidate.get("datetime", "")
+        )
+        if parsed:
+            return parsed
+
+        parsed = parse_publication_date_text(
+            candidate.get_text(" ", strip=True)
+        )
+        if parsed:
+            return parsed
+
+    return parse_publication_date_text(
+        container.get_text(" ", strip=True)
+    )
+
+
 def extract_posts(
     soup,
-    page_url,
-    from_competition_listing=False
+    page_url
 ):
 
     posts = []
 
-    # --------------------------------------------------------
-    # WordPress 通常使用 article
-    # --------------------------------------------------------
-
-    articles = soup.find_all(
-        "article"
-    )
+    articles = soup.find_all("article")
 
     if articles:
-
         for article in articles:
-
-            title_element = (
-                article.find(
-                    [
-                        "h1",
-                        "h2",
-                        "h3",
-                        "h4"
-                    ]
-                )
+            title_element = article.find(
+                ["h1", "h2", "h3", "h4"]
             )
 
             if not title_element:
                 continue
 
             title = clean_text(
-                title_element.get_text(
-                    " ",
-                    strip=True
-                )
+                title_element.get_text(" ", strip=True)
             )
 
             if not title:
                 continue
 
-            link_element = (
-                title_element.find(
-                    "a"
-                )
-            )
+            link_element = title_element.find("a")
 
             if not link_element:
-
-                link_element = (
-                    article.find(
-                        "a",
-                        href=True
-                    )
-                )
+                link_element = article.find("a", href=True)
 
             if not link_element:
                 continue
 
             url = normalize_url(
-                link_element.get(
-                    "href",
-                    ""
-                )
+                link_element.get("href", "")
             )
 
             if not url:
                 continue
 
             text = clean_text(
-                article.get_text(
-                    " ",
-                    strip=True
-                )
+                article.get_text(" ", strip=True)
             )
 
             posts.append(
@@ -1103,62 +1225,40 @@ def extract_posts(
                     "title": title,
                     "url": url,
                     "text": text,
-                    "from_competition_listing": from_competition_listing,
+                    "publication_date": extract_publication_date(article),
                 }
             )
 
         return posts
 
-    # --------------------------------------------------------
-    # fallback
-    # --------------------------------------------------------
-
+    # Fallback for non-article layouts.
     headings = soup.find_all(
-        [
-            "h1",
-            "h2",
-            "h3",
-            "h4"
-        ]
+        ["h1", "h2", "h3", "h4"]
     )
 
     for heading in headings:
-
         title = clean_text(
-            heading.get_text(
-                " ",
-                strip=True
-            )
+            heading.get_text(" ", strip=True)
         )
 
         if not title:
             continue
 
-        link = heading.find(
-            "a",
-            href=True
-        )
+        link = heading.find("a", href=True)
 
         if not link:
             continue
 
         url = normalize_url(
-            link.get(
-                "href",
-                ""
-            )
+            link.get("href", "")
         )
 
         if not url:
             continue
 
         parent = heading.parent
-
         text = clean_text(
-            parent.get_text(
-                " ",
-                strip=True
-            )
+            parent.get_text(" ", strip=True)
         )
 
         posts.append(
@@ -1166,6 +1266,7 @@ def extract_posts(
                 "title": title,
                 "url": url,
                 "text": text,
+                "publication_date": extract_publication_date(parent),
             }
         )
 
@@ -1173,102 +1274,165 @@ def extract_posts(
 
 
 # ============================================================
-# Poster Competitions 專頁解析
+# Poster Competitions 專頁
 # ============================================================
 
-def extract_competition_catalog(soup):
+def extract_curated_competition_entries(soup):
     """
-    Extract curated competition entries from PosterTerritory's
-    /poster-competitions/ page.
+    Extract only entries belonging to the "Poster Competitions" section.
 
-    The page currently renders each entry with a title/description,
-    optional Deadline text, and a "More" link to the organizer.
-    We use the block around each "More" link and keep the first
-    meaningful line as the competition title.
+    The current page has:
+      # Poster Competitions
+      ...
+      # Design programs and Summer Schools
+      ...
+      # Open calls and platforms with no deadline
+    We stop before the next section so unrelated programs/platforms are not
+    accidentally treated as competitions.
     """
     results = []
-    seen = set()
 
-    for anchor in soup.find_all("a", href=True):
-        label = clean_text(anchor.get_text(" ", strip=True)).lower()
-
-        if label != "more":
-            continue
-
-        # Walk up a few levels to find the smallest useful content block.
-        container = anchor
-        best_text = ""
-        for _ in range(4):
-            container = container.parent
-            if not container:
-                break
-
-            candidate = clean_text(
-                container.get_text("\n", strip=True)
-            )
-
-            if 15 <= len(candidate) <= 700:
-                best_text = candidate
-                break
-
-        if not best_text:
-            continue
-
-        lines = [
-            clean_text(line)
-            for line in best_text.splitlines()
-            if clean_text(line)
-        ]
-
-        if not lines:
-            continue
-
-        # Remove the trailing "More".
-        lines = [line for line in lines if line.lower() != "more"]
-        if not lines:
-            continue
-
-        # Pick the first line that looks like an entry title.
-        title = ""
-        for line in lines:
-            lowered = line.lower()
-            if lowered.startswith(
-                ("deadline", "last deadline", "categories", "published by")
-            ):
-                continue
-            if line.lower() in {
-                "brand awards and design awards.",
-                "posters",
-            }:
-                continue
-            title = line
+    heading = None
+    for candidate in soup.find_all(
+        ["h1", "h2", "h3"]
+    ):
+        if clean_text(
+            candidate.get_text(" ", strip=True)
+        ).lower() == "poster competitions":
+            heading = candidate
             break
 
-        if not title:
-            continue
+    if not heading:
+        return results
 
-        key = title.lower()
-        if key in seen:
-            continue
+    stop_titles = {
+        "design programs and summer schools",
+        "open calls and platforms with no deadline",
+    }
 
+    current = heading.find_next_sibling()
+
+    while current:
+        if current.name in {"h1", "h2", "h3"}:
+            title = clean_text(
+                current.get_text(" ", strip=True)
+            ).lower()
+
+            if title in stop_titles:
+                break
+
+        for anchor in current.find_all(
+            "a",
+            href=True
+        ):
+            label = clean_text(
+                anchor.get_text(" ", strip=True)
+            ).lower()
+
+            if label != "more":
+                continue
+
+            container = anchor.parent
+            for _ in range(4):
+                if not container:
+                    break
+
+                block_text = clean_text(
+                    container.get_text(" ", strip=True)
+                )
+
+                if 10 <= len(block_text) <= 700:
+                    break
+
+                container = container.parent
+
+            if not container:
+                continue
+
+            # Use text immediately before More. The curated list is simple:
+            # title + optional description/deadline + More.
+            block_text = clean_text(
+                container.get_text(" ", strip=True)
+            )
+
+            block_text = re.sub(
+                r"\s+More\s*$",
+                "",
+                block_text,
+                flags=re.IGNORECASE,
+            )
+
+            if not block_text:
+                continue
+
+            # Strip common metadata prefixes and choose a clean first segment.
+            lines = [
+                clean_text(x)
+                for x in re.split(r"\s{2,}|\n", block_text)
+                if clean_text(x)
+            ]
+
+            title_text = ""
+
+            if lines:
+                for candidate in lines:
+                    lowered = candidate.lower()
+                    if lowered.startswith(
+                        (
+                            "deadline",
+                            "last deadline",
+                            "categories",
+                            "theme:",
+                        )
+                    ):
+                        continue
+                    title_text = candidate
+                    break
+
+            if not title_text:
+                title_text = block_text
+
+            title_text = re.sub(
+                r"\bLast Deadline\b.*$",
+                "",
+                title_text,
+                flags=re.IGNORECASE,
+            ).strip()
+
+            if not title_text:
+                continue
+
+            results.append(
+                {
+                    "title": clean_title(title_text),
+                    "text": block_text,
+                    "officialUrlHint": normalize_url(
+                        anchor.get("href", "")
+                    ),
+                    "from_curated_listing": True,
+                }
+            )
+
+        current = current.find_next_sibling()
+
+    # De-duplicate titles while preserving order.
+    unique = []
+    seen = set()
+
+    for item in results:
+        key = item["title"].lower()
+        if not key or key in seen:
+            continue
         seen.add(key)
+        unique.append(item)
 
-        results.append(
-            {
-                "title": title,
-                "text": " ".join(lines),
-                "officialUrlHint": normalize_url(anchor["href"]),
-                "from_competition_listing": True,
-            }
-        )
-
-    return results
+    return unique
 
 
-def resolve_posterterritory_post_url(title):
+def resolve_posterterritory_article_url(title):
     """
-    Resolve a curated listing title to its PosterTerritory article.
-    Prefer WordPress REST search; fall back to the site's search URL.
+    Resolve a curated competition title to its PosterTerritory article.
+    WordPress REST search is preferred; the site's own search page is fallback.
     """
     try:
         response = session.get(
@@ -1281,26 +1445,79 @@ def resolve_posterterritory_post_url(title):
             timeout=20,
         )
         response.raise_for_status()
-        results = response.json()
+        payload = response.json()
 
-        if results:
-            exact = [
-                item for item in results
-                if clean_text(item.get("title", {}).get("rendered", "")).lower()
-                == clean_text(title).lower()
-            ]
-            best = exact[0] if exact else results[0]
-            url = normalize_url(best.get("url", ""))
-            if url:
-                return url
+        if isinstance(payload, list):
+            for item in payload:
+                url = normalize_url(item.get("url", ""))
+                if url and same_domain(url):
+                    return url
+
     except Exception as error:
-        print("WordPress search failed:", error)
+        print(
+            "WordPress search failed:",
+            error
+        )
 
-    # Slug fallback. This is only used after the API search fails.
-    slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
-    return normalize_url(
-        BASE_URL + slug + "/"
-    )
+    try:
+        response = session.get(
+            BASE_URL,
+            params={"s": title},
+            timeout=20,
+        )
+        response.raise_for_status()
+
+        soup = BeautifulSoup(
+            response.text,
+            "html.parser"
+        )
+
+        target = title.lower()
+
+        for article in soup.find_all("article"):
+            heading = article.find(
+                ["h1", "h2", "h3", "h4"]
+            )
+            if not heading:
+                continue
+
+            found_title = clean_title(
+                heading.get_text(" ", strip=True)
+            )
+
+            link = heading.find(
+                "a",
+                href=True
+            )
+
+            if (
+                link
+                and found_title.lower() == target
+            ):
+                url = normalize_url(
+                    link.get("href", "")
+                )
+                if url and same_domain(url):
+                    return url
+
+        # Fallback: first PosterTerritory article result.
+        article = soup.find("article")
+        if article:
+            link = article.find("a", href=True)
+            if link:
+                url = normalize_url(
+                    link.get("href", "")
+                )
+                if url and same_domain(url):
+                    return url
+
+    except Exception as error:
+        print(
+            "PosterTerritory site search failed:",
+            error
+        )
+
+    return ""
 
 
 # ============================================================
@@ -1311,75 +1528,117 @@ def collect_listing_posts():
 
     all_posts = {}
 
-    # 1) Curated Poster Competitions index.
+    # A. Curated competition page: use only the competition section.
     competition_listing_url = BASE_URL + "poster-competitions/"
 
     print("")
     print("======================================")
-    print("Scanning dedicated competition listing")
+    print("Scanning curated competition listing")
     print(competition_listing_url)
 
     try:
-        html = download(competition_listing_url)
-        soup = BeautifulSoup(html, "html.parser")
+        html = download(
+            competition_listing_url
+        )
+        soup = BeautifulSoup(
+            html,
+            "html.parser"
+        )
 
-        catalog = extract_competition_catalog(soup)
-        print("Curated competition entries:", len(catalog))
+        entries = extract_curated_competition_entries(
+            soup
+        )
 
-        for item in catalog:
-            title = item["title"]
-            article_url = resolve_posterterritory_post_url(title)
+        print(
+            "Curated competition entries:",
+            len(entries)
+        )
 
-            if article_url and same_domain(article_url):
-                all_posts[article_url] = {
-                    "title": title,
-                    "url": article_url,
-                    "text": item["text"],
-                    "from_competition_listing": True,
-                    "officialUrlHint": item.get("officialUrlHint", ""),
-                }
+        for entry in entries:
+            article_url = resolve_posterterritory_article_url(
+                entry["title"]
+            )
+
+            if not article_url:
+                continue
+
+            all_posts[article_url] = {
+                "title": entry["title"],
+                "url": article_url,
+                "text": entry["text"],
+                "from_curated_listing": True,
+                "officialUrlHint": entry.get(
+                    "officialUrlHint",
+                    ""
+                ),
+            }
 
             time.sleep(0.15)
 
     except Exception as error:
         print(
-            "Unable to download/parse competition listing:",
+            "Unable to scan curated competition listing:",
             error
         )
 
-    # 2) Homepage pagination remains useful for recent posts and publication dates.
-    for page_number in range(1, MAX_PAGES + 1):
+    # B. Homepage pagination catches recent articles and their publication date.
+    for page_number in range(
+        1,
+        MAX_PAGES + 1
+    ):
 
         if page_number == 1:
             url = START_PAGE
         else:
-            url = BASE_URL + f"page/{page_number}/"
+            url = (
+                BASE_URL
+                + f"page/{page_number}/"
+            )
 
         print("")
-        print("======================================")
-        print(f"Scanning listing page {page_number}")
+        print(
+            "======================================"
+        )
+        print(
+            f"Scanning listing page {page_number}"
+        )
         print(url)
 
         try:
-            html = download(url)
+            html = download(
+                url
+            )
+
         except Exception as error:
-            print("Unable to download page:", error)
+            print(
+                "Unable to download page:",
+                error
+            )
             continue
 
-        soup = BeautifulSoup(html, "html.parser")
-        posts = extract_posts(
-            soup,
-            url,
-            from_competition_listing=False,
+        soup = BeautifulSoup(
+            html,
+            "html.parser"
         )
 
-        print("Posts found:", len(posts))
+        posts = extract_posts(
+            soup,
+            url
+        )
+
+        print(
+            "Posts found:",
+            len(posts)
+        )
 
         if not posts:
-            print("No posts found. Stopping pagination.")
+            print(
+                "No posts found. Stopping pagination."
+            )
             break
 
         for post in posts:
+
             post_url = post["url"]
 
             if (
@@ -1388,102 +1647,109 @@ def collect_listing_posts():
             ):
                 continue
 
-            existing = all_posts.get(post_url)
+            existing = all_posts.get(
+                post_url
+            )
 
-            if existing and existing.get(
-                "from_competition_listing",
-                False
-            ):
-                # Keep the curated-listing flag/title while enriching
-                # the text with the homepage/article snippet.
-                existing["text"] = (
-                    existing.get("text", "")
-                    + " "
-                    + post.get("text", "")
-                )
-                continue
+            if existing:
+                if existing.get(
+                    "from_curated_listing",
+                    False
+                ):
+                    existing["text"] = clean_text(
+                        existing.get("text", "")
+                        + " "
+                        + post.get("text", "")
+                    )
+                    if post.get("publication_date"):
+                        existing["publication_date"] = (
+                            post["publication_date"]
+                        )
+                    continue
 
             all_posts[post_url] = post
 
         time.sleep(0.4)
 
     print("")
-    print("Total unique posts:", len(all_posts))
+    print(
+        "Total unique posts:",
+        len(all_posts)
+    )
 
-    return list(all_posts.values())
+    return list(
+        all_posts.values()
+    )
+
+
 
 
 # ============================================================
 # 建立 competition
 # ============================================================
 
-def build_competitions(
-    posts
-):
+def build_competitions(posts):
 
     results = []
 
     seen_urls = set()
     seen_titles = set()
 
-    for index, post in enumerate(
-        posts,
-        start=1
-    ):
+    stats = {
+        "found": 0,
+        "before_cutoff": 0,
+        "no_publication_date": 0,
+        "publication_fallback": 0,
+        "real_deadline": 0,
+    }
+
+    for post in posts:
 
         title = clean_title(
-            post["title"]
+            post.get("title", "")
         )
 
-        text = post["text"]
-        url = post["url"]
+        text = post.get("text", "")
+        url = post.get("url", "")
 
         if not title:
             continue
 
-        # ----------------------------------------------------
-        # 只看可能是海報競賽的內容
-        # ----------------------------------------------------
+        # Curated Poster Competitions entries are trusted as competitions.
+        is_curated = post.get(
+            "from_curated_listing",
+            False
+        )
 
         if not looks_like_poster_competition(
             title,
             text,
-            from_competition_listing=post.get(
-                "from_competition_listing",
-                False
-            ),
+            from_competition_listing=is_curated,
         ):
-            print("SKIP - not poster competition:", title)
             continue
 
-        # ----------------------------------------------------
-        # 找 Deadline
-        # ----------------------------------------------------
-
-        deadline = find_deadline(
-            text
+        article_text = text
+        publication_date = post.get(
+            "publication_date"
         )
 
-        # 有些列表摘要沒有日期，
-        # 再進入文章頁面找一次
-        if deadline is None:
-
+        # The publication date is the tracker cutoff basis.
+        if publication_date is None:
             try:
-
                 print(
                     "Checking article:",
                     title
                 )
 
-                article_html = download(
-                    url
+                article_html = download(url)
+
+                article_soup = BeautifulSoup(
+                    article_html,
+                    "html.parser"
                 )
 
-                article_soup = (
-                    BeautifulSoup(
-                        article_html,
-                        "html.parser"
-                    )
+                publication_date = extract_publication_date(
+                    article_soup
                 )
 
                 article_text = clean_text(
@@ -1493,73 +1759,53 @@ def build_competitions(
                     )
                 )
 
-                deadline = find_deadline(
-                    article_text
-                )
-
-                if deadline:
-
-                    text = article_text
-
-                time.sleep(0.3)
+                time.sleep(0.25)
 
             except Exception as error:
-
                 print(
-                    "Article download failed:",
+                    "Article lookup failed:",
                     error
                 )
 
+        if publication_date is None:
+            stats["no_publication_date"] += 1
+            print(
+                "SKIP - no publication date:",
+                title
+            )
+            continue
+
+        if publication_date < CUTOFF_DATE:
+            stats["before_cutoff"] += 1
+            print(
+                "SKIP - before cutoff:",
+                title,
+                publication_date.isoformat()
+            )
+            continue
+
+        stats["found"] += 1
+
+        deadline = find_deadline(article_text)
         date_type = "deadline"
 
         if deadline is None:
-            # No explicit Deadline: keep the item sortable using the
-            # publication date, and mark the visible date with *.
-            publication_date = find_publication_date(text)
-
-            if publication_date is None:
-                print(
-                    "SKIP - no deadline or publication date:",
-                    title
-                )
-                continue
-
             deadline = publication_date
             date_type = "published"
+            stats["publication_fallback"] += 1
+        else:
+            stats["real_deadline"] += 1
 
-        # ----------------------------------------------------
-        # 只保留 2026/06/01 之後
-        # ----------------------------------------------------
-
-        if deadline < CUTOFF_DATE:
-
-            continue
-
-        # ----------------------------------------------------
-        # URL / title 去重
-        # ----------------------------------------------------
-
-        url_key = url.lower()
-
+        url_key = normalize_url(url).lower()
         title_key = title.lower()
 
-        if url_key in seen_urls:
+        if url_key in seen_urls or title_key in seen_titles:
             continue
 
-        if title_key in seen_titles:
-            continue
+        seen_urls.add(url_key)
+        seen_titles.add(title_key)
 
-        seen_urls.add(
-            url_key
-        )
-
-        seen_titles.add(
-            title_key
-        )
-
-        print(
-            "Finding official website..."
-        )
+        print("Finding official website...")
 
         official_url = (
             post.get("officialUrlHint", "")
@@ -1568,9 +1814,7 @@ def build_competitions(
 
         time.sleep(0.3)
 
-        print(
-            "Translating title..."
-        )
+        print("Translating title...")
 
         title_zh = translate_title_zh(title)
 
@@ -1586,49 +1830,42 @@ def build_competitions(
             "resultDate": "",
             "participating": False,
             "result": "pending",
-
-            # 官方比賽網站；找不到時保持空白
             "officialUrl": official_url,
-
-            # PosterTerritory 原始資料頁
             "sourceUrl": url,
-
-            # 保留舊欄位相容性：
-            # 前端新版會優先使用 officialUrl
             "url": url,
         }
 
-        results.append(
-            item
-        )
+        results.append(item)
 
-        print("")
         print(
             "FOUND:",
             title
         )
 
         print(
-            "DEADLINE:",
-            deadline.isoformat(),
-            "(publication date)" if date_type == "published" else ""
+            "PUBLISHED:",
+            publication_date.isoformat()
         )
 
         print(
-            "URL:",
-            url
+            "DEADLINE:",
+            item["deadline"]
         )
 
-    # --------------------------------------------------------
-    # Deadline 排序
-    # --------------------------------------------------------
-
+    # JSON is stored oldest->newest just as before; the front-end reverses it.
     results.sort(
         key=lambda x: (
-            x["deadline"],
+            x["deadline"].rstrip("*"),
             x["title"].lower()
         )
     )
+
+    print("")
+    print("======================================")
+    print("Build summary")
+    for key, value in stats.items():
+        print(f"{key}:", value)
+    print("======================================")
 
     return results
 
