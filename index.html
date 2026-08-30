@@ -970,6 +970,37 @@ const dlg =
 
 function fmt(date){
 
+  if(!date){
+    return '—';
+  }
+
+  const value =
+    String(date);
+
+  const isPublished =
+    value.endsWith('*');
+
+  const cleanDate =
+    value.replace(/\\*$/, '');
+
+  return cleanDate
+    .replaceAll(
+      '-',
+      '/'
+    ) +
+    (
+      isPublished
+        ? '*'
+        : ''
+    );
+
+}
+
+
+/* =====================================================
+   SORT DATE
+===================================================== */
+
 function sortDate(value){
 
   if(!value){
@@ -977,33 +1008,9 @@ function sortDate(value){
   }
 
   return new Date(
-    String(value).replace(/\*$/, '')
+    String(value)
+      .replace(/\\*$/, '')
   );
-
-}
-
-  if(!date){
-    return '—';
-  }
-
-  const value = String(date);
-  const isPublished = value.endsWith('*');
-  const cleanDate = value.replace(/\*$/, '');
-
-  return cleanDate.replaceAll('-', '/') +
-    (isPublished ? '*' : '');
-
-}
-
-  if(!date){
-    return '—';
-  }
-
-  return String(date)
-    .replaceAll(
-      '-',
-      '/'
-    );
 
 }
 
