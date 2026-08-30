@@ -997,6 +997,8 @@ let cloudState = new Map();
 
 let cloudSyncReady = false;
 
+let hiddenItemsRegistry = new Map();
+
 
 /* =====================================================
    HIDDEN / DELETED COMPETITIONS + CLOUD SYNC
@@ -1015,9 +1017,7 @@ function hideCompetition(item){
 
   keys.add(key);
 
-  saveLocalHiddenKeys(
-    keys
-  );
+  saveLocalHiddenKeys(keys);
 
 }
 
@@ -1035,9 +1035,7 @@ function restoreCompetition(item){
 
   keys.delete(key);
 
-  saveLocalHiddenKeys(
-    keys
-  );
+  saveLocalHiddenKeys(keys);
 
 }
 
