@@ -799,18 +799,6 @@ const dlg =
 
 function fmt(date){
 
-function sortDate(value){
-
-  if(!value){
-    return new Date(0);
-  }
-
-  return new Date(
-    String(value).replace(/\*$/, '')
-  );
-
-}
-
   if(!date){
     return '—';
   }
@@ -824,15 +812,16 @@ function sortDate(value){
 
 }
 
-  if(!date){
-    return '—';
+
+function sortDate(value){
+
+  if(!value){
+    return new Date(0);
   }
 
-  return String(date)
-    .replaceAll(
-      '-',
-      '/'
-    );
+  return new Date(
+    String(value).replace(/\*$/, '')
+  );
 
 }
 
