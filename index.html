@@ -1928,13 +1928,24 @@ async function handleDeleteClick(event){
     item
   );
 
+  /*
+    Remove the exact clicked row directly from the DOM.
+    Do not call render() here.
+  */
+  const row =
+    button.closest('.row');
+
+  if(row){
+
+    row.remove();
+
+  }
+
   data =
     data.filter(
       x =>
         normalizeIgnoreKey(x) !== key
     );
-
-  render();
 
   if(currentUser){
 
