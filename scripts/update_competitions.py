@@ -523,37 +523,81 @@ TRANSLATION_URL = (
 )
 
 
-def translate_title_zh(title):
-    try:
-        response = session.get(
-            TRANSLATION_URL,
-            params={
-                "q": title,
-                "langpair": "en|zh-TW",
-            },
-            timeout=20,
-        )
+def clean_translated_title(value):
+    value = clean_text(value)
 
-        response.raise_for_status()
-
-        data = response.json()
-
-        return clean_text(
-            data.get(
-                "responseData",
-                {}
-            ).get(
-                "translatedText",
-                ""
-            )
-        )
-
-    except Exception as error:
-        print(
-            "Translation failed:",
-            error
-        )
+    if not value:
         return ""
+
+    lowered = value.lower()
+
+    # MyMemory sometimes returns quota/warning strings as the translated text.
+    if (
+        "mymemory warning" in lowered
+        or "quota exceeded" in lowered
+        or "please use" in lowered
+        and "api" in lowered
+    ):
+        return ""
+
+    return value
+
+
+def translate_title_zh(title, retries=3):
+    """
+    Translate the competition title to Traditional Chinese.
+    Retry transient API failures so the front-end does not lose titleZh
+    for a whole batch during a temporary service hiccup.
+    """
+    title = clean_text(title)
+
+    if not title:
+        return ""
+
+    for attempt in range(1, retries + 1):
+        try:
+            response = session.get(
+                TRANSLATION_URL,
+                params={
+                    "q": title,
+                    "langpair": "en|zh-TW",
+                },
+                timeout=20,
+            )
+
+            response.raise_for_status()
+
+            data = response.json()
+
+            translated = clean_translated_title(
+                data.get(
+                    "responseData",
+                    {}
+                ).get(
+                    "translatedText",
+                    ""
+                )
+            )
+
+            if translated:
+                return translated
+
+            # A valid HTTP response with an empty translation should not
+            # be retried aggressively; one short retry can still recover
+            # from transient upstream errors.
+            if attempt < retries:
+                time.sleep(0.8)
+
+        except Exception as error:
+            print(
+                f"Translation failed (attempt {attempt}/{retries}):",
+                error
+            )
+
+            if attempt < retries:
+                time.sleep(1.2)
+
+    return ""
 
 
 def load_json_list(filename):
@@ -896,7 +940,8 @@ def main():
             item["title"]
         )
 
-        time.sleep(0.35)
+        # Keep a small pause between translation requests.
+        time.sleep(0.8)
 
     merged = merge_history(
         old_items,
