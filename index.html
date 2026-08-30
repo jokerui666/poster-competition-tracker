@@ -1059,14 +1059,18 @@ function saveLocalHiddenKeys(keys){
 
 function isHidden(item){
 
+  if(
+    item &&
+    item.__hidden === true
+  ){
+
+    return true;
+
+  }
+
   const key =
     normalizeIgnoreKey(item);
 
-  /*
-    Local hidden state is an immediate UI action. Cloud hidden=true is also
-    authoritative. We deliberately do not let an existing cloud hidden=false
-    row override a just-clicked local hide.
-  */
   if(
     localHiddenKeys().has(key)
   ){
@@ -1128,6 +1132,23 @@ async function loadCloudState(){
         ]
       )
     );
+
+  data.forEach(item => {
+
+    const key =
+      normalizeIgnoreKey(item);
+
+    const row =
+      cloudState.get(key);
+
+    if(row){
+
+      item.__hidden =
+        !!row.hidden;
+
+    }
+
+  });
 
   cloudSyncReady = true;
 
@@ -2158,6 +2179,8 @@ function render(){
         if(!ok)
           return;
 
+        item.__hidden = true;
+
         hideCompetition(item);
 
         /* Immediately remove it from this screen. */
@@ -2462,6 +2485,8 @@ document
       }
 
     }
+
+    target.__hidden = false;
 
     restoreCompetition(target);
 
