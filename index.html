@@ -1966,13 +1966,20 @@ async function handleDeleteClick(event){
     item
   );
 
+  /* Directly remove the exact visible row. */
+  const row =
+    button.closest('.row');
+
+  if(row){
+    row.remove();
+  }
+
+  /* Remove it from the active in-memory data set. */
   data =
     data.filter(
       x =>
         normalizeIgnoreKey(x) !== key
     );
-
-  render();
 
   if(currentUser){
 
@@ -1984,8 +1991,13 @@ async function handleDeleteClick(event){
 
     if(!cloudResult.ok){
 
+      console.error(
+        '刪除同步失敗：',
+        cloudResult.message
+      );
+
       window.alert(
-        '這筆比賽已從目前畫面隱藏，\\n' +
+        '這筆比賽已從目前畫面刪除，\\n' +
         '但雲端同步尚未完成：\\n\\n' +
         cloudResult.message
       );
@@ -2347,6 +2359,16 @@ function render(){
     ).length;
 
 }
+
+
+/* =====================================================
+   DELETE CLICK DELEGATION
+===================================================== */
+
+list.addEventListener(
+  'click',
+  handleDeleteClick
+);
 
 
 /* =====================================================
