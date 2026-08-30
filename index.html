@@ -1062,6 +1062,19 @@ function isHidden(item){
   const key =
     normalizeIgnoreKey(item);
 
+  /*
+    Local hidden state is an immediate UI action. Cloud hidden=true is also
+    authoritative. We deliberately do not let an existing cloud hidden=false
+    row override a just-clicked local hide.
+  */
+  if(
+    localHiddenKeys().has(key)
+  ){
+
+    return true;
+
+  }
+
   if(
     cloudSyncReady &&
     cloudState.has(key)
@@ -1071,7 +1084,7 @@ function isHidden(item){
 
   }
 
-  return localHiddenKeys().has(key);
+  return false;
 
 }
 
@@ -1249,66 +1262,17 @@ async function setCloudHidden(
   hidden
 ){
 
-  /*
-    Retry authentication/cloud state once before failing. This avoids the
-    common race where the page UI is rendered before Supabase has finished
-    restoring the saved session.
-  */
-  if(!currentUser){
-
-    const {
-      data: sessionData
-    } =
-      await supabaseClient.auth
-        .getSession();
-
-    currentUser =
-      sessionData.session
-        ? sessionData.session.user
-        : null;
-
-  }
-
-  if(!currentUser){
-
-    console.error(
-      'Cloud hidden save failed: user is not signed in.'
-    );
-
-    return {
-      ok:false,
-      message:'尚未登入 Supabase。請先按「☁ 登入同步」。'
-    };
-
-  }
-
-  if(!cloudSyncReady){
-
-    await loadCloudState();
-
-  }
-
-  if(!cloudSyncReady){
-
-    return {
-      ok:false,
-      message:
-        '無法讀取 Supabase 的 tracker_user_data。'
-    };
-
-  }
+  if(
+    !currentUser ||
+    !cloudSyncReady
+  )
+    return false;
 
   const key =
     normalizeIgnoreKey(item);
 
-  if(!key){
-
-    return {
-      ok:false,
-      message:'找不到這筆比賽的識別網址。'
-    };
-
-  }
+  if(!key)
+    return false;
 
   const existing =
     cloudState.get(key) || {};
@@ -1356,16 +1320,7 @@ async function setCloudHidden(
       error
     );
 
-    return {
-      ok:false,
-      message:
-        `${error.message || 'Supabase 寫入失敗'}`
-        + (
-          error.code
-            ? ` (code ${error.code})`
-            : ''
-        )
-    };
+    return false;
 
   }
 
@@ -1374,15 +1329,22 @@ async function setCloudHidden(
     row
   );
 
-  cloudSyncReady = true;
+  if(!hidden){
 
-  return {
-    ok:true,
-    message:''
-  };
+    const localKeys =
+      localHiddenKeys();
+
+    localKeys.delete(key);
+
+    saveLocalHiddenKeys(
+      localKeys
+    );
+
+  }
+
+  return true;
 
 }
-
 
 
 async function mergeCloudAndLocal(){
@@ -2198,24 +2160,27 @@ function render(){
 
         hideCompetition(item);
 
-        const cloudResult =
-          await setCloudHidden(
-            item,
-            true
-          );
+        /* Immediately remove it from this screen. */
+        render();
 
-        if(!cloudResult.ok){
+        if(currentUser){
 
-          window.alert(
-            '無法同步刪除：\n\n' +
-            cloudResult.message
-          );
+          const cloudOk =
+            await setCloudHidden(
+              item,
+              true
+            );
 
-          return;
+          if(!cloudOk){
+
+            window.alert(
+              '這筆比賽已從目前畫面隱藏，\n' +
+              '但雲端同步失敗。請保持登入後再試一次。'
+            );
+
+          }
 
         }
-
-        render();
 
       };
 
@@ -2475,26 +2440,30 @@ document
 
     }
 
-    restoreCompetition(
-      hiddenItems[index - 1]
-    );
+    const target =
+      hiddenItems[index - 1];
 
-    const cloudResult =
-      await setCloudHidden(
-        hiddenItems[index - 1],
-        false
-      );
+    if(currentUser){
 
-    if(!cloudResult.ok){
+      const cloudOk =
+        await setCloudHidden(
+          target,
+          false
+        );
 
-      window.alert(
-        '無法同步恢復：\n\n' +
-        cloudResult.message
-      );
+      if(!cloudOk){
 
-      return;
+        window.alert(
+          '雲端同步失敗，暫時無法恢復。'
+        );
+
+        return;
+
+      }
 
     }
+
+    restoreCompetition(target);
 
     render();
 
@@ -2578,18 +2547,8 @@ function updateAuthUI(){
 
   if(currentUser){
 
-    if(cloudSyncReady){
-
-      authStatus.textContent =
-        '● 已登入・雲端同步中';
-
-    }
-    else{
-
-      authStatus.textContent =
-        '● 已登入・雲端連線待確認';
-
-    }
+    authStatus.textContent =
+      '● 已登入・雲端同步中';
 
     loginBtn.style.display =
       'none';
