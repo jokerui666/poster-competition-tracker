@@ -1249,17 +1249,66 @@ async function setCloudHidden(
   hidden
 ){
 
-  if(
-    !currentUser ||
-    !cloudSyncReady
-  )
-    return false;
+  /*
+    Retry authentication/cloud state once before failing. This avoids the
+    common race where the page UI is rendered before Supabase has finished
+    restoring the saved session.
+  */
+  if(!currentUser){
+
+    const {
+      data: sessionData
+    } =
+      await supabaseClient.auth
+        .getSession();
+
+    currentUser =
+      sessionData.session
+        ? sessionData.session.user
+        : null;
+
+  }
+
+  if(!currentUser){
+
+    console.error(
+      'Cloud hidden save failed: user is not signed in.'
+    );
+
+    return {
+      ok:false,
+      message:'尚未登入 Supabase。請先按「☁ 登入同步」。'
+    };
+
+  }
+
+  if(!cloudSyncReady){
+
+    await loadCloudState();
+
+  }
+
+  if(!cloudSyncReady){
+
+    return {
+      ok:false,
+      message:
+        '無法讀取 Supabase 的 tracker_user_data。'
+    };
+
+  }
 
   const key =
     normalizeIgnoreKey(item);
 
-  if(!key)
-    return false;
+  if(!key){
+
+    return {
+      ok:false,
+      message:'找不到這筆比賽的識別網址。'
+    };
+
+  }
 
   const existing =
     cloudState.get(key) || {};
@@ -1307,7 +1356,16 @@ async function setCloudHidden(
       error
     );
 
-    return false;
+    return {
+      ok:false,
+      message:
+        `${error.message || 'Supabase 寫入失敗'}`
+        + (
+          error.code
+            ? ` (code ${error.code})`
+            : ''
+        )
+    };
 
   }
 
@@ -1316,9 +1374,15 @@ async function setCloudHidden(
     row
   );
 
-  return true;
+  cloudSyncReady = true;
+
+  return {
+    ok:true,
+    message:''
+  };
 
 }
+
 
 
 async function mergeCloudAndLocal(){
@@ -2134,23 +2198,20 @@ function render(){
 
         hideCompetition(item);
 
-        if(currentUser){
+        const cloudResult =
+          await setCloudHidden(
+            item,
+            true
+          );
 
-          const ok =
-            await setCloudHidden(
-              item,
-              true
-            );
+        if(!cloudResult.ok){
 
-          if(!ok){
+          window.alert(
+            '無法同步刪除：\n\n' +
+            cloudResult.message
+          );
 
-            window.alert(
-              '雲端同步失敗，請稍後再試。'
-            );
-
-            return;
-
-          }
+          return;
 
         }
 
@@ -2418,23 +2479,20 @@ document
       hiddenItems[index - 1]
     );
 
-    if(currentUser){
+    const cloudResult =
+      await setCloudHidden(
+        hiddenItems[index - 1],
+        false
+      );
 
-      const ok =
-        await setCloudHidden(
-          hiddenItems[index - 1],
-          false
-        );
+    if(!cloudResult.ok){
 
-      if(!ok){
+      window.alert(
+        '無法同步恢復：\n\n' +
+        cloudResult.message
+      );
 
-        window.alert(
-          '雲端同步失敗，請稍後再試。'
-        );
-
-        return;
-
-      }
+      return;
 
     }
 
@@ -2520,8 +2578,18 @@ function updateAuthUI(){
 
   if(currentUser){
 
-    authStatus.textContent =
-      '● 已登入・雲端同步中';
+    if(cloudSyncReady){
+
+      authStatus.textContent =
+        '● 已登入・雲端同步中';
+
+    }
+    else{
+
+      authStatus.textContent =
+        '● 已登入・雲端連線待確認';
+
+    }
 
     loginBtn.style.display =
       'none';
