@@ -1,5 +1,16 @@
 [
   {
+    "title": "USIPB 2027 United States International Poster Biennial",
+    "titleZh": "USIPB 2027美國國際海報雙年展",
+    "deadline": "2027-02-28",
+    "resultDate": "",
+    "participating": false,
+    "result": "pending",
+    "officialUrl": "",
+    "sourceUrl": "https://www.posterterritory.com/usipb-2027-united-states-international-poster-biennial",
+    "url": "https://www.posterterritory.com/usipb-2027-united-states-international-poster-biennial"
+  },
+  {
     "title": "7th Bolu International Poster Design Competition",
     "titleZh": "第七屆Bolu國際海報設計比賽",
     "deadline": "2026-11-01",
@@ -9,6 +20,17 @@
     "officialUrl": "",
     "sourceUrl": "https://www.posterterritory.com/7th-bolu-international-poster-design-competition",
     "url": "https://www.posterterritory.com/7th-bolu-international-poster-design-competition"
+  },
+  {
+    "title": "Bucharest Graphic Days 2026",
+    "titleZh": "2026年布加勒斯特形象日",
+    "deadline": "2026-10-05",
+    "resultDate": "",
+    "participating": false,
+    "result": "pending",
+    "officialUrl": "",
+    "sourceUrl": "https://www.posterterritory.com/bucharest-graphic-days",
+    "url": "https://www.posterterritory.com/bucharest-graphic-days"
   },
   {
     "title": "Communication Arts 2027 Typography Competition",
@@ -53,6 +75,17 @@
     "officialUrl": "",
     "sourceUrl": "https://www.posterterritory.com/luga-poster-biennale-ii-edition",
     "url": "https://www.posterterritory.com/luga-poster-biennale-ii-edition"
+  },
+  {
+    "title": "ARTIST VOTE OPEN CALL",
+    "titleZh": "藝術家投票公開招募",
+    "deadline": "2026-09-15",
+    "resultDate": "",
+    "participating": false,
+    "result": "pending",
+    "officialUrl": "",
+    "sourceUrl": "https://www.posterterritory.com/artist-vote-open-call",
+    "url": "https://www.posterterritory.com/artist-vote-open-call"
   },
   {
     "title": "200 Posters for Carlo Collodi",
