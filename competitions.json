@@ -1,5 +1,16 @@
 [
   {
+    "title": "28th Chaumont Student Contest",
+    "titleZh": "第28屆肖蒙學生大賽",
+    "deadline": "2027-03-09",
+    "resultDate": "",
+    "participating": false,
+    "result": "pending",
+    "officialUrl": "",
+    "sourceUrl": "https://www.posterterritory.com/28th-chaumont-student-contest",
+    "url": "https://www.posterterritory.com/28th-chaumont-student-contest"
+  },
+  {
     "title": "USIPB 2027 United States International Poster Biennial",
     "titleZh": "USIPB 2027美國國際海報雙年展",
     "deadline": "2027-02-28",
@@ -42,6 +53,17 @@
     "officialUrl": "",
     "sourceUrl": "https://www.posterterritory.com/bucharest-graphic-days",
     "url": "https://www.posterterritory.com/bucharest-graphic-days"
+  },
+  {
+    "title": "Súper Gráficas. Súper Letras",
+    "titleZh": "Súper Gráficas. Súper Letras",
+    "deadline": "2026-09-30",
+    "resultDate": "",
+    "participating": false,
+    "result": "pending",
+    "officialUrl": "",
+    "sourceUrl": "https://www.posterterritory.com/super-graficas-super-letras",
+    "url": "https://www.posterterritory.com/super-graficas-super-letras"
   },
   {
     "title": "Hehu International Poster Exhibition",
